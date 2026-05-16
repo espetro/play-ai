@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "paths": {
+      "@play-ai/ui": ["../../packages/ui/src"],
+      "@play-ai/ui/*": ["../../packages/ui/src/*"],
+      "@play-ai/ai": ["../../packages/ai/src"],
+      "@play-ai/ai/*": ["../../packages/ai/src/*"]
+    }
+  },
+  "include": ["entrypoints", "lib", "wxt.config.ts"]
+}
