@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { type Message, ChatMessage as ChatMessageComponent } from '@play-ai/ui/chat'
+import { type Message, ChatMessage as ChatMessageComponent } from '~/components/chat'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
