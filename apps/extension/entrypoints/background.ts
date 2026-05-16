@@ -1,5 +1,5 @@
 import { streamText } from 'ai'
-import { buildProvider, ANTHROPIC_MODELS, OPENAI_MODELS } from '@play-ai/ai'
+import { buildProvider, ANTHROPIC_MODELS, OPENAI_MODELS, fetchModels } from '@play-ai/ai'
 import {
   getState,
   setState,
@@ -68,6 +68,10 @@ function setupMessaging() {
         broadcastState({})
         sendResponse({ success: true })
       })
+    } else if (typedMessage.type === 'TEST_CONNECTION') {
+      fetchModels(typedMessage.payload)
+        .then((models) => sendResponse({ models }))
+        .catch((err) => sendResponse({ error: err.message }))
     }
 
     return true

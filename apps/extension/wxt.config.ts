@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'Play AI - YouTube Chat',
     description: 'Chat about YouTube videos with your AI model',
     permissions: ['storage', 'scripting', 'sidePanel'],
-    host_permissions: ['*://www.youtube.com/*', '*://youtube.com/*'],
+    host_permissions: ['*://www.youtube.com/*', '*://youtube.com/*', '<all_urls>'],
   },
   vite: () => ({
     plugins: [react(), tailwindcss()],

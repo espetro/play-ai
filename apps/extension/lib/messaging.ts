@@ -4,6 +4,7 @@ export type MessageType =
   | { type: 'SEND_MESSAGE'; payload: { videoId: string; content: string } }
   | { type: 'CLEAR_CHAT'; payload: { videoId: string } }
   | { type: 'STATE_UPDATE'; patch: any }
+  | { type: 'TEST_CONNECTION'; payload: { provider: 'anthropic' | 'openai'; baseUrl: string; apiKey: string } }
 
 export async function sendMessage<T = unknown>(
   message: MessageType
