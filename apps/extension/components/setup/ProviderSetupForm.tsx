@@ -4,7 +4,6 @@ import { sendMessage } from "../../lib/messaging"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 import { Connection } from "~/components/ai-elements/connection"
 import { ModelSelector } from "~/components/ai-elements/model-selector"
@@ -118,118 +117,111 @@ export const ProviderSetupForm = React.forwardRef<
   return (
     <form
       ref={ref}
-      className="w-full max-w-md"
+      className="w-full space-y-6"
       onSubmit={(e: React.FormEvent) => {
         e.preventDefault()
         handleSave()
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Configure AI Provider</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Connection Status */}
-          <Connection status={connectionStatus} error={errorMessage} />
+      {/* Connection Status */}
+      <Connection status={connectionStatus} error={errorMessage} />
 
-          {/* Provider Selection */}
-          <div className="space-y-3">
-            <Label>Provider</Label>
-            <ToggleGroup
-              type="single"
-              value={provider}
-              onValueChange={handleProviderChange}
-              className="justify-start gap-2"
-            >
-              <ToggleGroupItem value="anthropic" className="flex-1">
-                <span>Anthropic</span>
-              </ToggleGroupItem>
-              <ToggleGroupItem value="openai" className="flex-1">
-                <span>OpenAI-compat</span>
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+      {/* Provider Selection */}
+      <div className="space-y-3">
+        <Label>Provider</Label>
+        <ToggleGroup
+          type="single"
+          value={provider}
+          onValueChange={handleProviderChange}
+          className="justify-start gap-2"
+        >
+          <ToggleGroupItem value="anthropic" className="flex-1">
+            <span>Anthropic</span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="openai" className="flex-1">
+            <span>OpenAI-compat</span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
-          {/* Base URL */}
-          <div className="space-y-2">
-            <Label htmlFor="baseUrl">Base URL</Label>
-            <Input
-              id="baseUrl"
-              type="url"
-              value={baseUrl}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBaseUrl(e.target.value)}
-              placeholder="https://api.anthropic.com"
-            />
-            <p className="text-xs text-muted-foreground">
-              If not provided, default is used
-            </p>
-          </div>
+      {/* Base URL */}
+      <div className="space-y-2">
+        <Label htmlFor="baseUrl">Base URL</Label>
+        <Input
+          id="baseUrl"
+          type="url"
+          value={baseUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBaseUrl(e.target.value)}
+          placeholder="https://api.anthropic.com"
+        />
+        <p className="text-xs text-muted-foreground">
+          If not provided, default is used
+        </p>
+      </div>
 
-          {/* API Key */}
-          <div className="space-y-2">
-            <Label htmlFor="apiKey">
-              API Key <span className="text-destructive">*</span>
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="apiKey"
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
-                placeholder="sk-ant-••••••••••••••"
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowKey(!showKey)}
-              >
-                {showKey ? "Hide" : "Show"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Test Connection Button */}
+      {/* API Key */}
+      <div className="space-y-2">
+        <Label htmlFor="apiKey">
+          API Key <span className="text-destructive">*</span>
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            id="apiKey"
+            type={showKey ? "text" : "password"}
+            value={apiKey}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
+            placeholder="sk-ant-••••••••••••••"
+            className="flex-1"
+          />
           <Button
             type="button"
-            variant="default"
-            onClick={handleTestConnection}
-            disabled={isTestDisabled}
-            className="w-full"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowKey(!showKey)}
           >
-            Test Connection
+            {showKey ? "Hide" : "Show"}
           </Button>
+        </div>
+      </div>
 
-          {/* Model Selector */}
-          {connectionStatus === "connected" && (
-            <ModelSelector
-              models={availableModels}
-              value={selectedModel}
-              onValueChange={setSelectedModel}
-            />
-          )}
+      {/* Test Connection Button */}
+      <Button
+        type="button"
+        variant="default"
+        onClick={handleTestConnection}
+        disabled={isTestDisabled}
+        className="w-full"
+      >
+        Test Connection
+      </Button>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSaveDisabled}
-              className="flex-1"
-            >
-              Save →
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Model Selector */}
+      {connectionStatus === "connected" && (
+        <ModelSelector
+          models={availableModels}
+          value={selectedModel}
+          onValueChange={setSelectedModel}
+        />
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-2 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isSaveDisabled}
+          className="flex-1"
+        >
+          Save →
+        </Button>
+      </div>
     </form>
   )
 })
