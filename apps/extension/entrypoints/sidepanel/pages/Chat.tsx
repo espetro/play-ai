@@ -1,13 +1,26 @@
 import React, { useEffect, useState } from 'react'
-import { ChatShell, type Message } from '@play-ai/ui/chat'
+import { type Message, ChatMessage as ChatMessageComponent } from '@play-ai/ui/chat'
+import { ScrollArea } from '~/components/ui/scroll-area'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { ModelPickerButton } from '~/components/chat/ModelPickerButton'
+import { TranscriptBadge } from '~/components/chat/TranscriptBadge'
 import { sendMessage } from '../../../lib/messaging'
-import { extractVideoId } from '../../../lib/youtube'
-import type { ChatMessage } from '../../../lib/storage'
+import { getConfig, type AppConfig, type ChatMessage } from '../../../lib/storage'
 
 export default function Chat() {
   const [videoId, setVideoId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [config, setConfig] = useState<AppConfig | null>(null)
+  const [transcriptStatus, setTranscriptStatus] = useState<
+    'loading' | 'available' | 'unavailable'
+  >('loading')
+  const [inputValue, setInputValue] = useState('')
+
+  useEffect(() => {
+    getConfig().then(setConfig)
+  }, [])
 
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'sidepanel' })
@@ -26,6 +39,8 @@ export default function Chat() {
                 const vid = urlParams.get('v')
                 if (vid && vid.length === 11) {
                   setVideoId(vid)
+                  setTranscriptStatus('loading')
+                  checkTranscript(tabs[0].id!, vid)
                 }
               }
             }
@@ -44,9 +59,7 @@ export default function Chat() {
           const existing = prev.find((m) => m.id === msg.id)
           if (existing) {
             return prev.map((m) =>
-              m.id === msg.id
-                ? { ...m, content: msg.content }
-                : m
+              m.id === msg.id ? { ...m, content: msg.content } : m
             )
           }
           return [...prev, msg]
@@ -62,15 +75,46 @@ export default function Chat() {
     }
   }, [videoId])
 
-  const handleSendMessage = async (content: string) => {
-    if (!videoId) return
+  const checkTranscript = (tabId: number, videoId: string) => {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId },
+        func: () => {
+          const player = (window as any).ytInitialPlayerResponse
+          return !!player?.captions?.playerCaptionsTracklistRenderer
+            ?.captionTracks?.length
+        },
+      },
+      (results) => {
+        setTranscriptStatus(
+          results?.[0]?.result ? 'available' : 'unavailable'
+        )
+      }
+    )
+  }
+
+  const handleModelChange = async (model: string) => {
+    if (!config) return
+
+    const updated: AppConfig = { ...config, model }
+    await sendMessage({
+      type: 'SET_CONFIG',
+      payload: updated,
+    })
+    setConfig(updated)
+  }
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!videoId || !inputValue.trim()) return
 
     setIsLoading(true)
     try {
       await sendMessage({
         type: 'SEND_MESSAGE',
-        payload: { videoId, content },
+        payload: { videoId, content: inputValue },
       })
+      setInputValue('')
     } catch (error) {
       console.error('Failed to send message:', error)
     } finally {
@@ -82,8 +126,8 @@ export default function Chat() {
     return (
       <div className="flex items-center justify-center h-full p-4 text-center">
         <div>
-          <p className="text-sm text-gray-600 mb-2">No video detected</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm text-muted-foreground mb-2">No video detected</p>
+          <p className="text-xs text-muted-foreground">
             Navigate to a YouTube video to start chatting
           </p>
         </div>
@@ -92,12 +136,42 @@ export default function Chat() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <ChatShell
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between px-3 py-2 border-b">
+        <span className="text-xs text-muted-foreground">play-ai</span>
+        <TranscriptBadge status={transcriptStatus} />
+      </div>
+
+      <ScrollArea className="flex-1 px-3 py-2">
+        <div className="flex flex-col gap-2">
+          {messages.map((msg) => (
+            <ChatMessageComponent key={msg.id} message={msg} />
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="border-t p-3 flex flex-col gap-2">
+        <div className="flex items-center gap-1">
+          <ModelPickerButton config={config} onModelChange={handleModelChange} />
+        </div>
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            placeholder="Type a message…"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            disabled={isLoading}
+            className="flex-1 h-9 text-sm"
+          />
+          <Button
+            size="sm"
+            type="submit"
+            disabled={isLoading || !inputValue.trim()}
+            className="h-9"
+          >
+            Send
+          </Button>
+        </form>
+      </div>
     </div>
   )
 }
