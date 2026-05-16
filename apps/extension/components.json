@@ -3,10 +3,15 @@
   "style": "default",
   "rsc": false,
   "tsx": true,
-  "aliasPrefix": "~",
-  "components": {
-    "path": "components/ui",
-    "alias": "~"
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "",
+    "baseColor": "slate",
+    "cssVariables": true
   },
-  "utils": "lib/utils"
+  "aliases": {
+    "components": "~/components",
+    "utils": "~/lib/utils",
+    "ui": "~/components/ui"
+  }
 }
