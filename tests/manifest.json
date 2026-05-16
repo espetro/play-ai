@@ -1,0 +1,62 @@
+{
+  "name": "play-ai-extension-tests",
+  "description": "Gauge-TS test suite for play-ai YouTube AI chat browser extension",
+  "version": "0.0.1",
+  "language": "typescript",
+  "projectType": "nodejs",
+
+  "gauge": {
+    "version": ">=1.5.0",
+    "plugins": [
+      {
+        "id": "ts",
+        "version": ">=0.0.1"
+      }
+    ]
+  },
+
+  "specs": {
+    "directories": [
+      "specs"
+    ],
+    "excludePatterns": [
+      "*.md"
+    ]
+  },
+
+  "steps": {
+    "directories": [
+      "steps"
+    ]
+  },
+
+  "env": {
+    "default": "env/default"
+  },
+
+  "plugins": {
+    "ts": {
+      "srcDir": ".",
+      "scriptFile": "steps"
+    }
+  },
+
+  "testRunHooks": [
+    {
+      "name": "StartBrowser",
+      "implementation": "scripts/start-browser.ts",
+      "type": "beforeSuite"
+    },
+    {
+      "name": "CloseBrowser",
+      "implementation": "scripts/close-browser.ts",
+      "type": "afterSuite"
+    }
+  ],
+
+  "documentation": {
+    "dirs": [
+      "../docs/flows"
+    ]
+  }
+}
