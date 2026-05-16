@@ -1,0 +1,10 @@
+node_modules/
+.output/
+.turbo/
+dist/
+build/
+*.zip
+bun.lockb
+.DS_Store
+.env.local
+.osgrep

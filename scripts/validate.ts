@@ -1,0 +1,94 @@
+#!/usr/bin/env bun
+import { $ } from "bun";
+import tasuku from "tasuku";
+
+interface Stage {
+  display: string;
+  cmd: string;
+  onError?: (_: $.ShellError) => string | null;
+}
+
+interface StageOutput {
+  line: string;
+  ok: boolean;
+}
+
+const runStage = async (
+  { display, cmd, onError }: Stage,
+  filter?: string,
+): Promise<StageOutput> => {
+  try {
+    const turboCmd = filter
+      ? $`bunx turbo ${cmd} --filter=${filter}`.quiet()
+      : $`bunx turbo ${cmd}`.quiet();
+    await turboCmd;
+    return { line: `Running ${display}... ✅`, ok: true };
+  } catch (error) {
+    if (error instanceof $.ShellError && onError) {
+      const warningLine = onError(error);
+      if (warningLine) {
+        return { line: `Running ${display}... ${warningLine}`, ok: true };
+      }
+    }
+    return { line: `Running ${display}... ❌`, ok: false };
+  }
+};
+
+const warnOnError = ({ stdout, stderr }: $.ShellError): string | null => {
+  const output = stdout.toString("utf-8") + stderr.toString("utf-8");
+  const lintResults = [...output.matchAll(/Found (\d+) warnings? and (\d+) errors?/g)];
+
+  if (lintResults.length > 0) {
+    const totalErrors = lintResults.reduce((sum, match) => sum + parseInt(match[2]!, 10), 0);
+    const totalWarnings = lintResults.reduce((sum, match) => sum + parseInt(match[1]!, 10), 0);
+
+    if (totalErrors === 0 && totalWarnings > 0) {
+      return `⚠️  (${totalWarnings} linter warning${totalWarnings === 1 ? "" : "s"})`;
+    }
+  }
+
+  return null;
+};
+
+const stages: Stage[] = [
+  { display: "Types", cmd: "check" },
+  //   { display: "Lint", cmd: "lint", onError: warnOnError },
+  //   { display: "Format", cmd: "format" },
+  //   { display: "Test", cmd: "test" },
+];
+
+const getPackageName = async (cwdValue: string) => {
+  const cwdPath = cwdValue.startsWith("/") ? cwdValue : `${process.cwd()}/${cwdValue}`;
+  const pkgJson: { name: string } = await Bun.file(`${cwdPath}/package.json`).json();
+  return pkgJson.name;
+};
+
+const parseArgs = async () => {
+  const argv = process.argv;
+  const cwdIndex = argv.indexOf("--cwd");
+  const cwdValue = argv[cwdIndex + 1];
+
+  const filter = cwdIndex !== -1 && cwdValue ? await getPackageName(cwdValue) : undefined;
+
+  return { filter };
+};
+
+const main = async () => {
+  const { filter } = await parseArgs();
+
+  const results = await Promise.all(stages.map((stage) => runStage(stage, filter)));
+
+  for (const { line } of results) {
+    console.log(line);
+  }
+
+  console.log("");
+
+  if (!results.every((r) => r.ok)) {
+    return process.exit(1);
+  }
+
+  return console.log("All checks passed!");
+};
+
+await main();

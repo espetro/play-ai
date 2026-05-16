@@ -1,0 +1,30 @@
+{
+  "name": "play-ai",
+  "version": "0.0.1",
+  "private": true,
+  "description": "YouTube AI chat browser extension",
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check": "turbo check",
+    "validate": "bun scripts/validate.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "@types/chrome": "0.1.42",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260515.1",
+    "oxfmt": "0.50.0",
+    "oxlint": "1.64.0",
+    "tasuku": "2.3.0",
+    "turbo": "2.9.14",
+    "vitest": "4.1.6"
+  }
+}
