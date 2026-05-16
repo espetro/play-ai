@@ -23,7 +23,7 @@ export function ChatShell({
     <div className="flex h-full flex-col gap-4">
       <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             No messages yet. Start by asking about the video.
           </div>
         ) : (
@@ -35,7 +35,7 @@ export function ChatShell({
           </>
         )}
       </div>
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-border p-4">
         <ChatInput onSubmit={onSendMessage} disabled={isLoading} />
       </div>
     </div>

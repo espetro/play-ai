@@ -17,10 +17,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={`flex gap-3 ${isAssistant ? 'justify-start' : 'justify-end'}`}>
       <div
-        className={`max-w-xs rounded-lg px-4 py-2 ${
+        className={`max-w-xs rounded-2xl px-4 py-2 ${
           isAssistant
-            ? 'bg-gray-200 text-gray-900'
-            : 'bg-blue-500 text-white'
+            ? 'bg-muted text-foreground rounded-bl-none'
+            : 'bg-primary text-primary-foreground rounded-br-none'
         }`}
       >
         <p className="text-sm">{message.content}</p>
