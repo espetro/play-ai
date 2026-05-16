@@ -38,3 +38,7 @@ bash scripts/test-extension.sh --invidious
 
 - **YouTube**: `https://www.youtube.com/watch?v=ypzNhwpmOD4`
 - **Invidious**: `https://inv.nadeko.net/watch?v=FDXWH51IJBY` (fallback, tests sidebar API on alternative video platform)
+
+## UI Architecture
+
+All UI components live in `apps/extension/components/`. Single-app monorepo, so `packages/ui` was consolidated into the extension. See memory for details.
