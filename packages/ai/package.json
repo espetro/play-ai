@@ -1,0 +1,19 @@
+{
+  "name": "@play-ai/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core/types": "./src/core/types.ts",
+    "./core/store": "./src/core/store.ts",
+    "./core/adapters": "./src/core/adapters/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0"
+  },
+  "peerDependencies": {
+    "ai": ">=6.0.0"
+  }
+}
