@@ -1,15 +1,21 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../packages/tsconfig/base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "paths": {
-      "~/*": ["./*"],
-      "@play-ai/ui": ["../../packages/ui/src"],
-      "@play-ai/ui/*": ["../../packages/ui/src/*"],
-      "@play-ai/ai": ["../../packages/ai/src"],
-      "@play-ai/ai/*": ["../../packages/ai/src/*"]
+      "~/*": ["./*"]
     }
   },
-  "include": ["entrypoints", "lib", "components", "wxt.config.ts"]
+  "include": [
+    "entrypoints",
+    "lib",
+    "components",
+    "ui",
+    "background",
+    "wxt.config.ts",
+    "env.d.ts",
+    ".wxt/types"
+  ],
+  "exclude": ["components/ui", "components/ai-elements"]
 }
