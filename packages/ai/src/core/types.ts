@@ -30,7 +30,7 @@ export interface ExtensionState {
 export type BackgroundMessage =
   | { type: "GET_STATE" }
   | { type: "SET_CONFIG"; payload: AppConfig }
-  | { type: "SEND_MESSAGE"; payload: { content: string } }
+  | { type: "SEND_MESSAGE"; payload: { videoId: string; content: string } }
   | { type: "CLEAR_CHAT"; payload: { videoId: string } }
   | {
       type: "TEST_CONNECTION";
