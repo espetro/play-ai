@@ -93,3 +93,7 @@ export const $videoId = storage.defineItem<string | null>("local:videoId", {
 export const $messages = storage.defineItem<Record<string, ChatMessage[]>>("local:messages", {
   fallback: {},
 });
+
+export const $config = storage.defineItem<AppConfig | null>("local:config", {
+  fallback: null,
+});

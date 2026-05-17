@@ -1,30 +1,53 @@
-import { VideoInfo, ChatContainer } from "~/ui/components";
-import { $videoId, $messages } from "~/lib/storage";
+import { ChatContainer } from "~/ui/components";
+import { VideoInfo } from "~/ui/components";
+import { $videoId, $messages, $config } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
-import { browser } from "wxt/browser";
-import type { MessageType } from "~/lib/messaging";
+import { sendMessage } from "~/lib/messaging";
 import type { ChatMessage } from "@play-ai/ai/core/types";
+import type { BackgroundResponse } from "@play-ai/ai/core/types";
 
 export default function Chat() {
   const videoId = useStorageItem($videoId, null);
   const messagesMap = useStorageItem($messages, { _default: [] as ChatMessage[] });
+  const config = useStorageItem($config, null);
   const conversationKey = videoId ?? "_default";
   const messages = messagesMap[conversationKey] ?? [];
 
   const handleSendMessage = async (content: string) => {
-    const message: MessageType = {
+    await sendMessage({
       type: "SEND_MESSAGE",
       payload: { videoId: conversationKey, content },
-    };
+    });
+  };
 
-    await browser.runtime.sendMessage(message);
+  const handleModelChange = async (model: string) => {
+    if (!config) return;
+    await sendMessage({ type: "SET_CONFIG", payload: { ...config, model } });
+  };
+
+  const handleFetchModels = async (): Promise<string[]> => {
+    try {
+      const response = await sendMessage<BackgroundResponse>({ type: "GET_MODELS" });
+      if (response && response.type === "MODELS_LIST") {
+        return response.payload;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   };
 
   return (
     <div className="flex h-full flex-col">
       <VideoInfo videoId={videoId} />
       <div className="flex-1 min-h-0">
-        <ChatContainer messages={messages} onSendMessage={handleSendMessage} />
+        <ChatContainer
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          currentModel={config?.model}
+          onModelChange={handleModelChange}
+          onFetchModels={handleFetchModels}
+        />
       </div>
     </div>
   );
