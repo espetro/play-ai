@@ -1,4 +1,4 @@
-import { Message, MessageContent, MessageResponse } from "~/components/ai-elements/message";
+import { cn } from "~/lib/utils";
 
 export interface Message {
   id: string;
@@ -15,14 +15,20 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
 
   return (
-    <Message from={message.role}>
-      <MessageContent>
-        {isAssistant ? (
-          <MessageResponse>{message.content}</MessageResponse>
-        ) : (
-          <>{message.content}</>
+    <div
+      className={cn(
+        "group flex w-full max-w-[95%] flex-col gap-2",
+        isAssistant ? "is-assistant" : "is-user ml-auto justify-end",
+      )}
+    >
+      <div
+        className={cn(
+          "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm rounded-lg px-4 py-3",
+          isAssistant ? "bg-muted text-foreground" : "bg-primary text-primary-foreground",
         )}
-      </MessageContent>
-    </Message>
+      >
+        {message.content}
+      </div>
+    </div>
   );
 }

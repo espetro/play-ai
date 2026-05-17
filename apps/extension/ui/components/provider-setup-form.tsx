@@ -46,6 +46,7 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
     const [isSaving, setIsSaving] = React.useState(false);
 
     const handleProviderChange = (value: string) => {
+      if (!value) return;
       const newProvider = value as "anthropic" | "openai";
       setProvider(newProvider);
       setBaseUrl(DEFAULT_BASE_URLS[newProvider]);
@@ -130,13 +131,13 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
           >
             <ToggleGroupItem
               value="anthropic"
-              className="flex-1 border border-input bg-transparent data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+              className="flex-1 border border-input bg-transparent data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:!border-primary"
             >
               <span>Anthropic</span>
             </ToggleGroupItem>
             <ToggleGroupItem
               value="openai"
-              className="flex-1 border border-input bg-transparent data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+              className="flex-1 border border-input bg-transparent data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:!border-primary"
             >
               <span>OpenAI-compat</span>
             </ToggleGroupItem>

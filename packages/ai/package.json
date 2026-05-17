@@ -13,12 +13,12 @@
     "./core/adapters": "./src/core/adapters/index.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/openai": "^3.0.0"
+    "@ai-sdk/anthropic": "3.0.0",
+    "@ai-sdk/openai": "3.0.0"
   },
   "devDependencies": {
-    "@types/chrome": "^0.1.42",
-    "vitest": "^4.1.6"
+    "@types/chrome": "0.1.42",
+    "vitest": "4.1.6"
   },
   "peerDependencies": {
     "ai": ">=6.0.0"
