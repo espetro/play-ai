@@ -8,10 +8,26 @@
 import { $, argv } from "bun";
 import { parseArgs } from "util";
 import { join } from "path";
+import { existsSync } from "fs";
+import { homedir } from "os";
 
 const PROJECT_ROOT = join(import.meta.dir, "..");
 const EXT_OUTPUT = join(`${PROJECT_ROOT}/apps/extension/.output/chrome-mv3`);
 const STATE_FILE = join(`${PROJECT_ROOT}/scripts/youtube-cookies.json`);
+
+// Resolve browser binary: env var → Helium → Brave
+const HOME = homedir();
+const CHROMIUM_CANDIDATES = [
+  `${HOME}/Applications/Helium.app/Contents/MacOS/Helium`,
+  `${HOME}/Applications/Brave.app/Contents/MacOS/Brave Browser`,
+];
+const browserBinary =
+  process.env.BROWSER_EXECUTABLE_PATH ||
+  CHROMIUM_CANDIDATES.find((p) => existsSync(p));
+
+if (browserBinary) {
+  process.env.AGENT_BROWSER_EXECUTABLE_PATH = browserBinary;
+}
 
 const getInput = () => {
   const { values } = parseArgs({
