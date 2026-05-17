@@ -7,14 +7,13 @@ export default function Chat() {
   const [state] = useExtensionState();
 
   const videoId = state?.videoId ?? null;
-  const messages = videoId ? (state?.messages?.[videoId] ?? []) : [];
+  const conversationKey = videoId ?? "_default";
+  const messages = state?.messages?.[conversationKey] ?? [];
 
   const handleSendMessage = async (content: string) => {
-    if (!videoId) return;
-
     const message: MessageType = {
       type: "SEND_MESSAGE",
-      payload: { videoId, content },
+      payload: { videoId: conversationKey, content },
     };
 
     await browser.runtime.sendMessage(message);
