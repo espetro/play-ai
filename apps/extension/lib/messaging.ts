@@ -10,6 +10,7 @@ export type MessageType =
       type: "TEST_CONNECTION";
       payload: { provider: "anthropic" | "openai"; baseUrl?: string; apiKey: string };
     }
+  | { type: "GET_MODELS" }
   | { type: "FETCH_TRANSCRIPT" };
 
 export type TranscriptResponse = {
@@ -17,8 +18,20 @@ export type TranscriptResponse = {
   lines: string[] | null;
 };
 
-export async function sendMessage<T = unknown>(message: MessageType): Promise<T> {
-  return browser.runtime.sendMessage(message);
+// Use the callback-based API for reliability across all Chrome versions and MV3
+// service worker lifecycle edge cases. The Promise-based sendMessage (Chrome 116+)
+// has known bugs where the service worker can be terminated before the response
+// is forwarded back to the sender.
+export function sendMessage<T = unknown>(message: MessageType): Promise<T> {
+  return new Promise((resolve, reject) => {
+    browser.runtime.sendMessage(message, (response: T) => {
+      if (browser.runtime.lastError) {
+        reject(new Error(browser.runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
+  });
 }
 
 /** @deprecated use {@link browser.runtime.onMessage} directly */

@@ -6,11 +6,7 @@ import { sendMessageHandler } from "./sendMessage";
 import { clearChatHandler } from "./clearChat";
 import { testConnectionHandler } from "./testConnection";
 import { getTranscriptHandler } from "./getTranscript";
-
-type MessageHandler = (
-  message: BackgroundMessage,
-  _sender: Browser.runtime.MessageSender,
-) => Promise<BackgroundResponse>;
+import { getModelsHandler } from "./getModels";
 
 type HandlerForType<K extends BackgroundMessage["type"]> = (
   message: Extract<BackgroundMessage, { type: K }>,
@@ -25,22 +21,38 @@ const handlers: {
   CLEAR_CHAT: clearChatHandler as HandlerForType<"CLEAR_CHAT">,
   TEST_CONNECTION: testConnectionHandler as HandlerForType<"TEST_CONNECTION">,
   GET_TRANSCRIPT: getTranscriptHandler as HandlerForType<"GET_TRANSCRIPT">,
+  GET_MODELS: getModelsHandler as HandlerForType<"GET_MODELS">,
   STATE_UPDATE: async () => ({
     type: "ERROR",
     payload: { message: "STATE_UPDATE not handled in background" },
   }),
 };
 
-export function createMessageHandler(): MessageHandler {
-  return async function handleMessage(
+// Use the explicit sendResponse + return true pattern.
+// This works in all Chrome versions and is immune to service worker termination
+// issues that affect the Promise-return approach (Chrome 99+).
+export function createMessageHandler() {
+  return function handleMessage(
     message: BackgroundMessage,
     _sender: Browser.runtime.MessageSender,
-  ): Promise<BackgroundResponse> {
+    sendResponse: (response: BackgroundResponse) => void,
+  ): true {
     const handler = handlers[message.type];
-    if (!handler) {
-      return { type: "ERROR", payload: { message: `Unknown message type: ${message.type}` } };
-    }
-    return handler(message as never);
+    const responsePromise: Promise<BackgroundResponse> = handler
+      ? handler(message as never)
+      : Promise.resolve({
+          type: "ERROR" as const,
+          payload: { message: `Unknown message type: ${message.type}` },
+        });
+
+    responsePromise.then(sendResponse, (error) => {
+      sendResponse({
+        type: "ERROR",
+        payload: { message: error instanceof Error ? error.message : "Handler failed" },
+      });
+    });
+
+    return true;
   };
 }
 
@@ -73,4 +85,5 @@ export {
   clearChatHandler,
   testConnectionHandler,
   getTranscriptHandler,
+  getModelsHandler,
 };
