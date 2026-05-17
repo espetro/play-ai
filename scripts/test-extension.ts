@@ -34,13 +34,13 @@ const getInput = () => {
     args: argv.slice(2),
     options: {
       youtube: {
-        type: "string",
+        type: "boolean",
       },
       invidious: {
-        type: "string",
+        type: "boolean",
       },
       headed: {
-        type: "string",
+        type: "boolean",
       },
     },
   });
