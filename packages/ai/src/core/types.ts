@@ -37,6 +37,7 @@ export type BackgroundMessage =
       payload: { provider: ProviderType; baseUrl?: string; apiKey: string };
     }
   | { type: "GET_TRANSCRIPT"; payload: { videoId: string } }
+  | { type: "GET_MODELS" }
   | { type: "STATE_UPDATE" };
 
 export type BackgroundResponse =
@@ -44,4 +45,5 @@ export type BackgroundResponse =
   | { type: "STATE"; payload: ExtensionState }
   | { type: "CONNECTION_TEST"; payload: { models: string[] } | { error: string } }
   | { type: "CHAT_RESPONSE"; payload: ChatMessage }
-  | { type: "TRANSCRIPT_RESULT"; payload: TranscriptLine[] };
+  | { type: "TRANSCRIPT_RESULT"; payload: TranscriptLine[] }
+  | { type: "MODELS_LIST"; payload: string[] };
