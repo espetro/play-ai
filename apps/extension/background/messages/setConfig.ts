@@ -1,5 +1,5 @@
 import type { BackgroundMessage, BackgroundResponse } from "@play-ai/ai/core/types";
-import { storage } from "@play-ai/ai/core/store";
+import { storage } from "~/background/storage";
 
 type SetConfigMessage = Extract<BackgroundMessage, { type: "SET_CONFIG" }>;
 

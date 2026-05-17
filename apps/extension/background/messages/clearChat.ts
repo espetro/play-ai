@@ -1,5 +1,5 @@
 import type { BackgroundMessage, BackgroundResponse } from "@play-ai/ai/core/types";
-import { storage } from "@play-ai/ai/core/store";
+import { storage } from "~/background/storage";
 
 type ClearChatMessage = Extract<BackgroundMessage, { type: "CLEAR_CHAT" }>;
 

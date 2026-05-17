@@ -2,7 +2,7 @@ import { streamText, dynamicTool, stepCountIs } from "ai";
 import { z } from "zod";
 import { buildProvider } from "@play-ai/ai";
 import type { BackgroundMessage, BackgroundResponse, ChatMessage } from "@play-ai/ai/core/types";
-import { storage } from "@play-ai/ai/core/store";
+import { storage } from "~/background/storage";
 
 type SendMessageMessage = Extract<BackgroundMessage, { type: "SEND_MESSAGE" }>;
 
