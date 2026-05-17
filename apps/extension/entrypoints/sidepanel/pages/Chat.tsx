@@ -1,14 +1,15 @@
 import { VideoInfo, ChatContainer } from "~/ui/components";
-import { useExtensionState } from "~/ui/hooks/useSharedState";
+import { $videoId, $messages } from "~/lib/storage";
+import { useStorageItem } from "~/ui/hooks/useStorageItem";
 import { browser } from "wxt/browser";
 import type { MessageType } from "~/lib/messaging";
+import type { ChatMessage } from "@play-ai/ai/core/types";
 
 export default function Chat() {
-  const [state] = useExtensionState();
-
-  const videoId = state?.videoId ?? null;
+  const videoId = useStorageItem($videoId, null);
+  const messagesMap = useStorageItem($messages, { _default: [] as ChatMessage[] });
   const conversationKey = videoId ?? "_default";
-  const messages = state?.messages?.[conversationKey] ?? [];
+  const messages = messagesMap[conversationKey] ?? [];
 
   const handleSendMessage = async (content: string) => {
     const message: MessageType = {
