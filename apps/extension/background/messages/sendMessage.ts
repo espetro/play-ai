@@ -4,6 +4,7 @@ import { valibotSchema } from "@ai-sdk/valibot";
 import { buildProvider } from "@play-ai/ai";
 import type { BackgroundMessage, BackgroundResponse, ChatMessage } from "@play-ai/ai/core/types";
 import { storage } from "~/background/storage";
+import type { TranscriptResponse } from "~/lib/messaging";
 
 type SendMessageMessage = Extract<BackgroundMessage, { type: "SEND_MESSAGE" }>;
 
@@ -95,21 +96,18 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
                 const tab = tabs[0];
                 if (!tab?.id)
                   return "YouTube video tab not found. Make sure the video tab is still open.";
-                return new Promise<string>((resolve) => {
-                  browser.tabs.sendMessage(tab.id!, { type: "FETCH_TRANSCRIPT" }, (response) => {
-                    if (browser.runtime.lastError || !response) {
-                      resolve("Could not reach the video tab to fetch transcript.");
-                      return;
-                    }
-                    if (!response.available || !response.lines?.length) {
-                      resolve(
-                        "No transcript available for this video. It may not have subtitles enabled.",
-                      );
-                      return;
-                    }
-                    resolve((response.lines as string[]).join("\n"));
-                  });
-                });
+                try {
+                  const response = await browser.tabs.sendMessage<TranscriptResponse>(
+                    tab.id!,
+                    { type: "FETCH_TRANSCRIPT" },
+                  );
+                  if (!response?.available || !response.lines?.length) {
+                    return "No transcript available for this video. It may not have subtitles enabled.";
+                  }
+                  return response.lines.join("\n");
+                } catch {
+                  return "Could not reach the video tab to fetch transcript.";
+                }
               },
               toModelOutput: ({ output }: { output: unknown }) => {
                 if (typeof output === "string") return { type: "text" as const, value: output };

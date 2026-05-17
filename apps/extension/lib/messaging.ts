@@ -21,7 +21,9 @@ export type TranscriptResponse = {
 // Use the callback-based API for reliability across all Chrome versions and MV3
 // service worker lifecycle edge cases. The Promise-based sendMessage (Chrome 116+)
 // has known bugs where the service worker can be terminated before the response
-// is forwarded back to the sender.
+// is forwarded back to the sender. The callback form also works on Firefox
+// (browser.runtime.lastError is populated inside callbacks via Firefox's
+// backwards-compatibility shim).
 export function sendMessage<T = unknown>(message: MessageType): Promise<T> {
   return new Promise((resolve, reject) => {
     browser.runtime.sendMessage(message, (response: T) => {

@@ -9,6 +9,9 @@ export default defineConfig({
     permissions: [
       "storage",
       "scripting",
+      // sidePanel is Chrome/Edge only — Firefox ignores this permission and the
+      // side_panel manifest key. Firefox sidebar support would require a different
+      // sidebar_action approach and a separate Firefox build target.
       "sidePanel",
       // Dev-only: auto-inject YouTube consent cookies to bypass "Before you continue" interstitial
       ...(env.mode === "development" ? (["cookies"] as const) : []),
