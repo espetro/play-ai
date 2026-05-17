@@ -1,13 +1,18 @@
 import * as React from "react";
 import type { AppConfig } from "~/lib/storage";
 import { sendMessage } from "~/lib/messaging";
-import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { Connection } from "~/components/ai-elements/connection";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 interface ProviderSetupFormProps {
   initialConfig?: AppConfig;
@@ -125,23 +130,13 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
           >
             <ToggleGroupItem
               value="anthropic"
-              className={cn(
-                "flex-1 border",
-                provider === "anthropic"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-transparent border-input",
-              )}
+              className="flex-1 border border-input bg-transparent data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
             >
               <span>Anthropic</span>
             </ToggleGroupItem>
             <ToggleGroupItem
               value="openai"
-              className={cn(
-                "flex-1 border",
-                provider === "openai"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-transparent border-input",
-              )}
+              className="flex-1 border border-input bg-transparent data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
             >
               <span>OpenAI-compat</span>
             </ToggleGroupItem>
@@ -197,10 +192,7 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
         {connectionStatus === "connected" && (
           <div className="space-y-2">
             <Label htmlFor="model">Model</Label>
-            <Select
-              value={selectedModel ?? ""}
-              onValueChange={(e) => setSelectedModel(e)}
-            >
+            <Select value={selectedModel ?? ""} onValueChange={(e) => setSelectedModel(e)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
