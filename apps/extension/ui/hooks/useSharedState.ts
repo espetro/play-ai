@@ -1,15 +1,12 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
+import { atom, type Atom } from "nanostores";
+import { useStore } from "@nanostores/react";
 import type { AppConfig, AppState, ChatMessage } from "~/lib/storage";
 
-// TODO: Replace with ExtensionState from @play-ai/ai/core/types once packages/ai is created
 // Must stay in sync with AppState in lib/storage.ts
 export type ExtensionState = AppState;
 
-const STORAGE_KEYS = Object.keys({
-  config: null,
-  videoId: null,
-  messages: null,
-}) as (keyof ExtensionState)[];
+const STORAGE_KEYS = ["config", "videoId", "messages"] as const;
 
 const DEFAULT_STATE: ExtensionState = {
   config: null,
@@ -17,93 +14,71 @@ const DEFAULT_STATE: ExtensionState = {
   messages: {},
 };
 
-type Listener = () => void;
+const $config = atom<AppConfig | null>(DEFAULT_STATE.config);
+const $videoId = atom<string | null>(DEFAULT_STATE.videoId);
+const $messages = atom<Record<string, ChatMessage[]>>(DEFAULT_STATE.messages);
 
-const listeners = new Set<Listener>();
-let cachedSnapshot: ExtensionState | undefined;
-let cachePromise: Promise<ExtensionState> | undefined;
+const ATOM_MAP: Record<keyof ExtensionState, Atom<ExtensionState[keyof ExtensionState]>> = {
+  config: $config as Atom<ExtensionState[keyof ExtensionState]>,
+  videoId: $videoId as Atom<ExtensionState[keyof ExtensionState]>,
+  messages: $messages as Atom<ExtensionState[keyof ExtensionState]>,
+};
 
-function emitChange() {
-  cachedSnapshot = undefined;
-  cachePromise = undefined;
-  for (const listener of listeners) {
-    listener();
-  }
-}
+let storageListenerRegistered = false;
 
-function subscribe(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-async function readFullState(): Promise<ExtensionState> {
+async function syncFromStorage() {
   const data = (await browser.storage.local.get(STORAGE_KEYS)) as {
     config?: AppConfig | null;
     videoId?: string | null;
     messages?: Record<string, ChatMessage[]>;
   };
-  return {
-    config: data.config ?? null,
-    videoId: data.videoId ?? null,
-    messages: data.messages ?? {},
-  };
-}
 
-let storageListenerRegistered = false;
+  $config.set(data.config ?? null);
+  $videoId.set(data.videoId ?? null);
+  $messages.set(data.messages ?? {});
+}
 
 function ensureStorageListener() {
   if (storageListenerRegistered) return;
   storageListenerRegistered = true;
 
+  syncFromStorage();
+
   browser.storage.onChanged.addListener(function handleStorageChange(changes, areaName) {
     if (areaName !== "local") return;
 
-    const changedKeys = Object.keys(changes) as (keyof ExtensionState)[];
-    const relevantChange = changedKeys.some((k) => STORAGE_KEYS.includes(k));
-    if (relevantChange) {
-      emitChange();
+    for (const key of STORAGE_KEYS) {
+      if (key in changes) {
+        const change = changes[key as keyof typeof changes];
+        const atom = ATOM_MAP[key as keyof ExtensionState];
+        atom.set(change.newValue);
+      }
     }
   });
 }
 
 export function useExtensionState(): [
-  ExtensionState | undefined,
-  (partial: Partial<ExtensionState>) => void,
+  ExtensionState,
+  (partial: Partial<ExtensionState>) => Promise<void>,
 ] {
   ensureStorageListener();
 
-  const getSnapshot = useCallback((): ExtensionState | undefined => {
-    if (cachedSnapshot !== undefined) return cachedSnapshot;
-    // undefined signals "loading" — getServerSnapshot is used until subscribe fires
-    return undefined;
-  }, []);
+  const config = useStore($config);
+  const videoId = useStore($videoId);
+  const messages = useStore($messages);
 
-  const getServerSnapshot = useCallback((): ExtensionState => DEFAULT_STATE, []);
-
-  const subscribeWithInit = useCallback(
-    (listener: Listener): (() => void) => {
-      const unsubscribe = subscribe(listener);
-
-      if (cachedSnapshot === undefined && cachePromise === undefined) {
-        cachePromise = readFullState().then((state) => {
-          cachedSnapshot = state;
-          cachePromise = undefined;
-          listener();
-        });
-      }
-
-      return unsubscribe;
-    },
-    [],
-  );
-
-  const state = useSyncExternalStore(subscribeWithInit, getSnapshot, getServerSnapshot);
+  const state: ExtensionState = {
+    config,
+    videoId,
+    messages,
+  };
 
   const setPartial = useCallback(async (partial: Partial<ExtensionState>) => {
+    if ("config" in partial) $config.set(partial.config as AppConfig | null);
+    if ("videoId" in partial) $videoId.set(partial.videoId as string | null);
+    if ("messages" in partial) $messages.set(partial.messages as Record<string, ChatMessage[]>);
+
     await browser.storage.local.set(partial);
-    // browser.storage.onChanged listener handles emitChange
   }, []);
 
   return [state, setPartial];
@@ -111,15 +86,18 @@ export function useExtensionState(): [
 
 export function useSharedState<K extends keyof ExtensionState>(
   key: K,
-): [ExtensionState[K] | undefined, (value: ExtensionState[K]) => void] {
-  const [fullState, setPartial] = useExtensionState();
-  const value = fullState?.[key] ?? DEFAULT_STATE[key];
+): [ExtensionState[K], (value: ExtensionState[K]) => Promise<void>] {
+  ensureStorageListener();
+
+  const $atom = ATOM_MAP[key];
+  const value = useStore($atom) as ExtensionState[K];
 
   const setValue = useCallback(
-    (value: ExtensionState[K]) => {
-      setPartial({ [key]: value } as Partial<ExtensionState>);
+    async (value: ExtensionState[K]) => {
+      $atom.set(value);
+      await browser.storage.local.set({ [key]: value });
     },
-    [key, setPartial],
+    [key, $atom],
   );
 
   return [value, setValue];
