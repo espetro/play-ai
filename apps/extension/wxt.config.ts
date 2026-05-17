@@ -1,6 +1,19 @@
+import { existsSync } from "fs";
+import { homedir } from "os";
 import { defineConfig } from "wxt";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+
+const HOME = homedir();
+
+// Resolve Chromium binary: env var → Helium → Brave → undefined (WXT default Chrome)
+const CHROMIUM_CANDIDATES = [
+  `${HOME}/Applications/Helium.app/Contents/MacOS/Helium`,
+  `${HOME}/Applications/Brave.app/Contents/MacOS/Brave Browser`,
+];
+const chromiumBinary =
+  process.env.BROWSER_EXECUTABLE_PATH ||
+  CHROMIUM_CANDIDATES.find((p) => existsSync(p));
 
 export default defineConfig({
   manifest: (env) => ({
@@ -18,16 +31,19 @@ export default defineConfig({
     ],
     host_permissions: ["*://www.youtube.com/*", "*://youtube.com/*", "<all_urls>"],
   }),
-  // When CHROME_USER_DATA_DIR is set, the dev runner copies your real Chrome profile
-  // so YouTube sees a legitimate browser instead of a fresh ephemeral one.
-  // This avoids YouTube's aggressive throttling of unknown profiles.
-  // See .env.example for setup instructions.
-  ...(process.env.CHROME_USER_DATA_DIR && {
-    runner: {
+  // Uses the first available Chromium browser (Helium → Brave) and your real profile
+  // so YouTube sees a legitimate session instead of a fresh ephemeral one.
+  // Set BROWSER_EXECUTABLE_PATH in .env to override the binary.
+  // Set CHROME_USER_DATA_DIR in .env to use your real browser profile.
+  webExt: {
+    ...(chromiumBinary && {
+      binaries: { chrome: chromiumBinary },
+    }),
+    ...(process.env.CHROME_USER_DATA_DIR && {
       chromiumProfile: `${process.env.CHROME_USER_DATA_DIR}/Default`,
       keepProfileChanges: true,
-    },
-  }),
+    }),
+  },
   vite: () => ({
     plugins: [react(), tailwindcss()],
     resolve: {
