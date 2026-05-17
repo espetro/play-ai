@@ -7,7 +7,6 @@ export default function Chat() {
   const [state] = useExtensionState();
 
   const videoId = state?.videoId ?? null;
-  const currentTimestamp = state?.currentTimestamp ?? 0;
   const messages = videoId ? (state?.messages?.[videoId] ?? []) : [];
 
   const handleSendMessage = async (content: string) => {
@@ -23,7 +22,7 @@ export default function Chat() {
 
   return (
     <div className="flex h-full flex-col">
-      <VideoInfo videoId={videoId} currentTimestamp={currentTimestamp} />
+      <VideoInfo videoId={videoId} />
       <div className="flex-1 min-h-0">
         <ChatContainer messages={messages} onSendMessage={handleSendMessage} />
       </div>

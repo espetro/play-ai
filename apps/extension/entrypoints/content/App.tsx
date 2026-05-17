@@ -80,7 +80,7 @@ export default function App() {
         return false;
       }
 
-      const track = tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0];
+      const track = tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0]!;
 
       fetch(track.baseUrl + "&fmt=json3")
         .then((res) => res.json())

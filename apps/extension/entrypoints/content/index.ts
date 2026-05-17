@@ -1,7 +1,6 @@
 import { defineContentScript } from "wxt/utils/define-content-script";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { createAdapter, detectPlatform } from "@play-ai/ai/core/adapters";
-import { storage } from "@play-ai/ai/core/store";
 import { onVideoChange } from "~/lib/youtube";
 import "./style.css";
 
@@ -11,7 +10,7 @@ async function updateVideoId() {
   if (adapter) {
     const videoId = adapter.getVideoId();
     if (videoId) {
-      await storage.set("videoId", videoId);
+      await browser.storage.local.set({ videoId });
     }
   }
 }

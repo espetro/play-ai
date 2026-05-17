@@ -18,7 +18,7 @@ function getDevEnvConfig(): AppConfig | null {
 
   if (!baseUrl || !model) return null;
 
-  const provider = baseUrl.includes("anthropic") ? "anthropic" as const : "openai" as const;
+  const provider = baseUrl.includes("anthropic") ? ("anthropic" as const) : ("openai" as const);
 
   return {
     provider,

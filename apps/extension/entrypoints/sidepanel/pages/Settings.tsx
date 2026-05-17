@@ -60,9 +60,7 @@ export default function Settings() {
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">
-                    {config.model}
-                  </p>
+                  <p className="text-sm font-medium">{config.model}</p>
                   <p className="text-xs text-muted-foreground">
                     API Key: {maskApiKey(config.apiKey)}
                   </p>
