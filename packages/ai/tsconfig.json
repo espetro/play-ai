@@ -1,8 +1,10 @@
 {
   "extends": "../tsconfig/base.json",
   "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.AsyncIterable", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    "types": ["@types/chrome"]
   },
   "include": ["src"]
 }
