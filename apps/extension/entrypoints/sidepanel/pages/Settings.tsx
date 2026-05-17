@@ -5,7 +5,6 @@ import { Badge } from "~/components/ui/badge";
 import { getConfig, type AppConfig } from "~/lib/storage";
 import { sendMessage } from "~/lib/messaging";
 import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
-import { MODEL_DISPLAY_NAMES } from "@play-ai/ai";
 
 export default function Settings() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -62,7 +61,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">
-                    {MODEL_DISPLAY_NAMES[config.model] || config.model}
+                    {config.model}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     API Key: {maskApiKey(config.apiKey)}
