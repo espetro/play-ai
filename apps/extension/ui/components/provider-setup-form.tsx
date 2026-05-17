@@ -1,4 +1,6 @@
 import * as React from "react";
+import * as v from "valibot";
+import { useForm, useField, Form as FormischForm, getInput, setErrors } from "@formisch/react";
 import type { AppConfig } from "~/lib/storage";
 import { sendMessage } from "~/lib/messaging";
 import { Button } from "~/components/ui/button";
@@ -25,37 +27,52 @@ const DEFAULT_BASE_URLS = {
   openai: "https://api.openai.com/v1",
 };
 
+const ProviderSchema = v.object({
+  provider: v.union([v.literal("anthropic"), v.literal("openai")]),
+  baseUrl: v.pipe(v.string(), v.url("Valid URL required")),
+  apiKey: v.string(),
+  model: v.pipe(v.string(), v.nonEmpty("Please select a model")),
+});
+
 export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetupFormProps>(
   ({ initialConfig, onSave, onCancel }, ref) => {
-    const [provider, setProvider] = React.useState<"anthropic" | "openai">(
-      (initialConfig?.provider as "anthropic" | "openai") || "anthropic",
-    );
-    const [baseUrl, setBaseUrl] = React.useState(
-      initialConfig?.baseUrl || DEFAULT_BASE_URLS[provider as keyof typeof DEFAULT_BASE_URLS],
-    );
-    const [apiKey, setApiKey] = React.useState(initialConfig?.apiKey || "");
     const [showKey, setShowKey] = React.useState(false);
     const [connectionStatus, setConnectionStatus] = React.useState<
       "idle" | "connecting" | "connected" | "error"
     >("idle");
     const [availableModels, setAvailableModels] = React.useState<string[]>([]);
-    const [selectedModel, setSelectedModel] = React.useState<string | null>(
-      initialConfig?.model || null,
-    );
     const [errorMessage, setErrorMessage] = React.useState("");
-    const [isSaving, setIsSaving] = React.useState(false);
+
+    const form = useForm({
+      schema: ProviderSchema,
+      initialInput: {
+        provider: (initialConfig?.provider as "anthropic" | "openai") ?? "anthropic",
+        baseUrl: initialConfig?.baseUrl ?? DEFAULT_BASE_URLS["anthropic"],
+        apiKey: initialConfig?.apiKey ?? "",
+        model: initialConfig?.model ?? "",
+      },
+      validate: "submit",
+      revalidate: "input",
+    });
+
+    const providerField = useField(form, { path: ["provider"] });
+    const baseUrlField = useField(form, { path: ["baseUrl"] });
+    const apiKeyField = useField(form, { path: ["apiKey"] });
+    const modelField = useField(form, { path: ["model"] });
 
     const handleProviderChange = (value: string) => {
       if (!value) return;
       const newProvider = value as "anthropic" | "openai";
-      setProvider(newProvider);
-      setBaseUrl(DEFAULT_BASE_URLS[newProvider]);
+      providerField.onChange(newProvider);
+      baseUrlField.onChange(DEFAULT_BASE_URLS[newProvider]);
       setConnectionStatus("idle");
       setAvailableModels([]);
-      setSelectedModel(null);
+      modelField.onChange("");
     };
 
     const handleTestConnection = async () => {
+      const { provider, baseUrl, apiKey } = getInput(form);
+
       if (!baseUrl) {
         setErrorMessage("Base URL is required");
         return;
@@ -83,39 +100,29 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
       }
     };
 
-    const handleSave = async () => {
-      if (!selectedModel) {
-        setErrorMessage("Please select a model");
-        return;
-      }
-
-      setIsSaving(true);
+    const handleSaveSubmit = async (output: v.Output<typeof ProviderSchema>) => {
       try {
         const config: AppConfig = {
-          provider,
-          baseUrl,
-          apiKey,
-          model: selectedModel,
+          provider: output.provider,
+          baseUrl: output.baseUrl,
+          apiKey: output.apiKey,
+          model: output.model,
         };
         await onSave(config);
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "Failed to save config");
-      } finally {
-        setIsSaving(false);
       }
     };
 
-    const isTestDisabled = !baseUrl || connectionStatus === "connecting";
-    const isSaveDisabled = connectionStatus !== "connected" || !selectedModel || isSaving;
+    const isTestDisabled = !baseUrlField.input || connectionStatus === "connecting";
+    const isSaveDisabled = connectionStatus !== "connected" || form.isSubmitting;
 
     return (
-      <form
+      <FormischForm
+        of={form}
         ref={ref}
         className="w-full space-y-6"
-        onSubmit={(e: React.FormEvent) => {
-          e.preventDefault();
-          handleSave();
-        }}
+        onSubmit={handleSaveSubmit}
       >
         {/* Connection Status */}
         <Connection status={connectionStatus} error={errorMessage} />
@@ -125,7 +132,7 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
           <Label>Provider</Label>
           <ToggleGroup
             type="single"
-            value={provider}
+            value={providerField.input ?? "anthropic"}
             onValueChange={handleProviderChange}
             className="justify-start gap-2"
           >
@@ -150,10 +157,15 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
           <Input
             id="baseUrl"
             type="url"
-            value={baseUrl}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBaseUrl(e.target.value)}
+            value={baseUrlField.input ?? ""}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              baseUrlField.onChange(e.target.value)
+            }
             placeholder="https://api.anthropic.com"
           />
+          {baseUrlField.errors?.[0] && (
+            <p className="text-xs text-destructive">{baseUrlField.errors[0]}</p>
+          )}
           <p className="text-xs text-muted-foreground">If not provided, default is used</p>
         </div>
 
@@ -164,8 +176,10 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
             <Input
               id="apiKey"
               type={showKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
+              value={apiKeyField.input ?? ""}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                apiKeyField.onChange(e.target.value)
+              }
               placeholder="sk-ant-••••••••••••••"
               className="flex-1"
             />
@@ -193,7 +207,7 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
         {connectionStatus === "connected" && (
           <div className="space-y-2">
             <Label htmlFor="model">Model</Label>
-            <Select value={selectedModel ?? ""} onValueChange={(e) => setSelectedModel(e)}>
+            <Select value={modelField.input ?? ""} onValueChange={(v) => modelField.onChange(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
@@ -205,6 +219,9 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
                 ))}
               </SelectContent>
             </Select>
+            {modelField.errors?.[0] && (
+              <p className="text-xs text-destructive">{modelField.errors[0]}</p>
+            )}
           </div>
         )}
 
@@ -217,9 +234,11 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
             Save →
           </Button>
         </div>
-      </form>
+      </FormischForm>
     );
   },
 );
 
 ProviderSetupForm.displayName = "ProviderSetupForm";
+
+export default ProviderSetupForm;
