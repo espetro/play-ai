@@ -6,6 +6,7 @@ export default defineBackground({
     setupInstall();
     setupMessaging();
     setupPorts();
+    setupYouTubeCookies();
   },
 });
 
@@ -53,4 +54,25 @@ function setupPorts() {
 
 function setupMessaging() {
   browser.runtime.onMessage.addListener(createMessageHandler());
+}
+
+const YOUTUBE_CONSENT_COOKIES = [
+  { name: "SOCS", value: "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg" },
+  { name: "CONSENT", value: "YES+cb.20210328-17-p0.en+FX+667" },
+] as const;
+
+async function setupYouTubeCookies() {
+  if (import.meta.env.PROD) return;
+
+  for (const { name, value } of YOUTUBE_CONSENT_COOKIES) {
+    await browser.cookies.set({
+      url: "https://www.youtube.com",
+      name,
+      value,
+      domain: ".youtube.com",
+      path: "/",
+      secure: true,
+      sameSite: "lax",
+    });
+  }
 }
