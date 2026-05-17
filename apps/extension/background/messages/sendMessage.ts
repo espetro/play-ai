@@ -1,6 +1,6 @@
 import { streamText, dynamicTool, stepCountIs } from "ai";
 import { z } from "zod";
-import { buildProvider, ANTHROPIC_MODELS, OPENAI_MODELS } from "@play-ai/ai";
+import { buildProvider } from "@play-ai/ai";
 import type { BackgroundMessage, BackgroundResponse, ChatMessage } from "@play-ai/ai/core/types";
 import { storage } from "@play-ai/ai/core/store";
 
@@ -60,8 +60,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
   await storage.setPartial({ messages: updatedMessages });
 
   const provider = buildProvider(state.config);
-  const models = state.config.provider === "anthropic" ? ANTHROPIC_MODELS : OPENAI_MODELS;
-  const modelId = models.includes(state.config.model) ? state.config.model : models[0];
+  const modelId = state.config.model;
 
   const assistantMessageId = Math.random().toString(36).substr(2, 9);
   const assistantMessage: ChatMessage = {
