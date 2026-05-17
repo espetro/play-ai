@@ -18,6 +18,16 @@ export default defineConfig({
     ],
     host_permissions: ["*://www.youtube.com/*", "*://youtube.com/*", "<all_urls>"],
   }),
+  // When CHROME_USER_DATA_DIR is set, the dev runner copies your real Chrome profile
+  // so YouTube sees a legitimate browser instead of a fresh ephemeral one.
+  // This avoids YouTube's aggressive throttling of unknown profiles.
+  // See .env.example for setup instructions.
+  ...(process.env.CHROME_USER_DATA_DIR && {
+    runner: {
+      chromiumProfile: `${process.env.CHROME_USER_DATA_DIR}/Default`,
+      keepProfileChanges: true,
+    },
+  }),
   vite: () => ({
     plugins: [react(), tailwindcss()],
     resolve: {
