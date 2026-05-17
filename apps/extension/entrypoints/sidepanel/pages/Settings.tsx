@@ -1,48 +1,48 @@
-import React, { useEffect, useState } from 'react'
-import { Card, CardContent } from '~/components/ui/card'
-import { Button } from '~/components/ui/button'
-import { Badge } from '~/components/ui/badge'
-import { MODEL_DISPLAY_NAMES } from '@play-ai/ai'
-import { getConfig, type AppConfig } from '../../../lib/storage'
-import { sendMessage } from '../../../lib/messaging'
-import { ProviderSetupForm } from '../../../components/setup/ProviderSetupForm'
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { getConfig, type AppConfig } from "~/lib/storage";
+import { sendMessage } from "~/lib/messaging";
+import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
+import { MODEL_DISPLAY_NAMES } from "@play-ai/ai";
 
 export default function Settings() {
-  const [config, setConfig] = useState<AppConfig | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [formOpen, setFormOpen] = useState(false)
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     getConfig().then((cfg) => {
-      setConfig(cfg)
-      setIsLoading(false)
-      setFormOpen(cfg === null)
-    })
-  }, [])
+      setConfig(cfg);
+      setIsLoading(false);
+      setFormOpen(cfg === null);
+    });
+  }, []);
 
   const handleSave = async (newConfig: AppConfig) => {
-    await sendMessage({ type: 'SET_CONFIG', payload: newConfig })
+    await sendMessage({ type: "SET_CONFIG", payload: newConfig });
     await getConfig().then((cfg) => {
-      setConfig(cfg)
-      setFormOpen(false)
-    })
-  }
+      setConfig(cfg);
+      setFormOpen(false);
+    });
+  };
 
   const handleCancel = () => {
     if (config === null) {
-      return
+      return;
     }
-    setFormOpen(false)
-  }
+    setFormOpen(false);
+  };
 
   if (isLoading) {
-    return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
+    return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>;
   }
 
   const maskApiKey = (key: string) => {
-    if (key.length <= 8) return '••••••••'
-    return key.slice(0, 5) + '••••••••'
-  }
+    if (key.length <= 8) return "••••••••";
+    return key.slice(0, 5) + "••••••••";
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -57,7 +57,7 @@ export default function Settings() {
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">
-                    {config.provider === 'anthropic' ? 'Anthropic' : 'OpenAI-compat'}
+                    {config.provider === "anthropic" ? "Anthropic" : "OpenAI-compat"}
                   </Badge>
                 </div>
                 <div>
@@ -75,7 +75,7 @@ export default function Settings() {
                 onClick={() => setFormOpen(!formOpen)}
                 className="text-xs h-8"
               >
-                {formOpen ? 'Cancel' : 'Edit'}
+                {formOpen ? "Cancel" : "Edit"}
               </Button>
             </div>
 
@@ -111,12 +111,9 @@ export default function Settings() {
 
       {!config && (
         <div className="pt-4">
-          <ProviderSetupForm
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
+          <ProviderSetupForm onSave={handleSave} onCancel={handleCancel} />
         </div>
       )}
     </div>
-  )
+  );
 }

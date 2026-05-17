@@ -1,14 +1,13 @@
-import React from 'react'
-import { createRootRoute, createRoute } from '@tanstack/react-router'
-import Root from './pages/Root'
-import Onboarding from './pages/Onboarding'
+import { createRootRoute, createRoute } from "@tanstack/react-router";
+import Root from "./pages/Root";
+import Onboarding from "./pages/Onboarding";
 
-export const rootRoute = createRootRoute({ component: Root })
+export const rootRoute = createRootRoute({ component: Root });
 
 export const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: Onboarding,
-})
+});
 
-export const routeTree = rootRoute.addChildren([onboardingRoute])
+export const routeTree = rootRoute.addChildren([onboardingRoute]);
