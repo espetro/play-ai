@@ -1,12 +1,14 @@
 import { useCallback } from "react";
-import { atom, type Atom } from "nanostores";
+import { atom } from "nanostores";
 import { useStore } from "@nanostores/react";
 import type { AppConfig, AppState, ChatMessage } from "~/lib/storage";
 
 // Must stay in sync with AppState in lib/storage.ts
 export type ExtensionState = AppState;
 
-const STORAGE_KEYS = ["config", "videoId", "messages"] as const;
+type StorageKeys = "config" | "videoId" | "messages";
+
+const STORAGE_KEYS = ["config", "videoId", "messages"] satisfies StorageKeys[];
 
 const DEFAULT_STATE: ExtensionState = {
   config: null,
@@ -18,16 +20,17 @@ const $config = atom<AppConfig | null>(DEFAULT_STATE.config);
 const $videoId = atom<string | null>(DEFAULT_STATE.videoId);
 const $messages = atom<Record<string, ChatMessage[]>>(DEFAULT_STATE.messages);
 
-const ATOM_MAP: Record<keyof ExtensionState, Atom<ExtensionState[keyof ExtensionState]>> = {
-  config: $config as Atom<ExtensionState[keyof ExtensionState]>,
-  videoId: $videoId as Atom<ExtensionState[keyof ExtensionState]>,
-  messages: $messages as Atom<ExtensionState[keyof ExtensionState]>,
-};
+const ATOM_MAP = {
+  config: $config,
+  videoId: $videoId,
+  messages: $messages,
+} as const;
 
 let storageListenerRegistered = false;
 
 async function syncFromStorage() {
-  const data = (await browser.storage.local.get(STORAGE_KEYS)) as {
+  const response = await browser.storage.local.get(STORAGE_KEYS);
+  const data = response as {
     config?: AppConfig | null;
     videoId?: string | null;
     messages?: Record<string, ChatMessage[]>;
@@ -51,7 +54,7 @@ function ensureStorageListener() {
       if (key in changes) {
         const change = changes[key as keyof typeof changes];
         const atom = ATOM_MAP[key as keyof ExtensionState];
-        atom.set(change.newValue);
+        atom.set(change?.newValue);
       }
     }
   });
