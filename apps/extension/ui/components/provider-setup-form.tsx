@@ -101,7 +101,10 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
         payload: { provider, baseUrl, apiKey },
       });
 
-      if ("error" in response) {
+      if (!response) {
+        setConnectionStatus("error");
+        setErrorMessage("No response from background service. Try again.");
+      } else if ("error" in response) {
         setConnectionStatus("error");
         setErrorMessage(response.error);
       } else if ("models" in response) {
