@@ -1,3 +1,3 @@
-export { ChatMessage, type Message } from './ChatMessage'
-export { ChatInput } from './ChatInput'
-export { ChatShell } from './ChatShell'
+export { ChatMessage, type Message } from "./chat-message";
+export { ChatInput } from "./chat-input";
+export { ChatShell } from "./chat-shell";
