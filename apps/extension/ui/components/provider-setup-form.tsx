@@ -1,12 +1,13 @@
 import * as React from "react";
 import type { AppConfig } from "~/lib/storage";
 import { sendMessage } from "~/lib/messaging";
+import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { Connection } from "~/components/ai-elements/connection";
-import { ModelSelector } from "~/components/ai-elements/model-selector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
 interface ProviderSetupFormProps {
   initialConfig?: AppConfig;
@@ -124,13 +125,23 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
           >
             <ToggleGroupItem
               value="anthropic"
-              className="flex-1 border data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+              className={cn(
+                "flex-1 border",
+                provider === "anthropic"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent border-input",
+              )}
             >
               <span>Anthropic</span>
             </ToggleGroupItem>
             <ToggleGroupItem
               value="openai"
-              className="flex-1 border data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+              className={cn(
+                "flex-1 border",
+                provider === "openai"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent border-input",
+              )}
             >
               <span>OpenAI-compat</span>
             </ToggleGroupItem>
@@ -184,11 +195,24 @@ export const ProviderSetupForm = React.forwardRef<HTMLFormElement, ProviderSetup
 
         {/* Model Selector */}
         {connectionStatus === "connected" && (
-          <ModelSelector
-            models={availableModels}
-            value={selectedModel}
-            onValueChange={setSelectedModel}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="model">Model</Label>
+            <Select
+              value={selectedModel ?? ""}
+              onValueChange={(e) => setSelectedModel(e)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
 
         {/* Action Buttons */}
