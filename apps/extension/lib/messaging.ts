@@ -11,7 +11,8 @@ export type MessageType =
       payload: { provider: "anthropic" | "openai"; baseUrl?: string; apiKey: string };
     }
   | { type: "GET_MODELS" }
-  | { type: "FETCH_TRANSCRIPT" };
+  | { type: "FETCH_TRANSCRIPT" }
+  | { type: "CHECK_TRANSCRIPT"; payload: { videoId: string } };
 
 export type TranscriptResponse = {
   available: boolean;

@@ -6,11 +6,13 @@ import type { ChatMessage } from "~/lib/storage";
 import type { Browser } from "wxt/browser";
 
 interface YouTubePlayerResponse {
+  videoDetails?: { videoId?: string };
   captions?: {
     playerCaptionsTracklistRenderer?: {
       captionTracks?: Array<{
         languageCode: string;
         baseUrl: string;
+        kind?: string;
       }>;
     };
   };
@@ -19,6 +21,7 @@ interface YouTubePlayerResponse {
 interface CaptionTrack {
   languageCode: string;
   baseUrl: string;
+  kind?: string;
 }
 
 interface TranscriptResponse {
@@ -65,6 +68,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const currentVideoId = extractVideoId();
+
+    const getValidTracks = () => {
+      const player = window.ytInitialPlayerResponse;
+      // Guard against SPA navigation race: reject stale player response
+      if (player?.videoDetails?.videoId && player.videoDetails.videoId !== currentVideoId) {
+        return null;
+      }
+      const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      if (!tracks?.length) return null;
+      // Prefer manually-created over auto-generated (asr), then English first
+      return [...tracks].sort((a, b) => {
+        const aIsAsr = a.kind === "asr" ? 1 : 0;
+        const bIsAsr = b.kind === "asr" ? 1 : 0;
+        if (aIsAsr !== bIsAsr) return aIsAsr - bIsAsr;
+        return a.languageCode === "en" ? -1 : b.languageCode === "en" ? 1 : 0;
+      });
+    };
+
+    const handleCheckTranscript = (
+      message: { type: string },
+      _sender: Browser.runtime.MessageSender,
+      sendResponse: (r: { available: boolean }) => void,
+    ) => {
+      if (message.type !== "CHECK_TRANSCRIPT") return false;
+      sendResponse({ available: getValidTracks() !== null });
+      return false;
+    };
+
     const handleFetchTranscript = (
       message: { type: string },
       _sender: Browser.runtime.MessageSender,
@@ -72,15 +104,13 @@ export default function App() {
     ) => {
       if (message.type !== "FETCH_TRANSCRIPT") return false;
 
-      const tracks =
-        window.ytInitialPlayerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-
-      if (!tracks?.length) {
+      const tracks = getValidTracks();
+      if (!tracks) {
         sendResponse({ available: false, lines: null });
         return false;
       }
 
-      const track = tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0]!;
+      const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
 
       fetch(track.baseUrl + "&fmt=json3")
         .then((res) => res.json())
@@ -101,8 +131,12 @@ export default function App() {
       return true;
     };
 
+    browser.runtime.onMessage.addListener(handleCheckTranscript);
     browser.runtime.onMessage.addListener(handleFetchTranscript);
-    return () => browser.runtime.onMessage.removeListener(handleFetchTranscript);
+    return () => {
+      browser.runtime.onMessage.removeListener(handleCheckTranscript);
+      browser.runtime.onMessage.removeListener(handleFetchTranscript);
+    };
   }, []);
 
   const handleSendMessage = async (content: string) => {

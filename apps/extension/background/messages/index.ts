@@ -7,6 +7,7 @@ import { clearChatHandler } from "./clearChat";
 import { testConnectionHandler } from "./testConnection";
 import { getTranscriptHandler } from "./getTranscript";
 import { getModelsHandler } from "./getModels";
+import { checkTranscriptHandler } from "./checkTranscript";
 
 type HandlerForType<K extends BackgroundMessage["type"]> = (
   message: Extract<BackgroundMessage, { type: K }>,
@@ -22,6 +23,7 @@ const handlers: {
   TEST_CONNECTION: testConnectionHandler as HandlerForType<"TEST_CONNECTION">,
   GET_TRANSCRIPT: getTranscriptHandler as HandlerForType<"GET_TRANSCRIPT">,
   GET_MODELS: getModelsHandler as HandlerForType<"GET_MODELS">,
+  CHECK_TRANSCRIPT: checkTranscriptHandler as HandlerForType<"CHECK_TRANSCRIPT">,
   STATE_UPDATE: async () => ({
     type: "ERROR",
     payload: { message: "STATE_UPDATE not handled in background" },
@@ -86,4 +88,5 @@ export {
   testConnectionHandler,
   getTranscriptHandler,
   getModelsHandler,
+  checkTranscriptHandler,
 };

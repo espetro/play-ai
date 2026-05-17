@@ -38,6 +38,7 @@ export type BackgroundMessage =
     }
   | { type: "GET_TRANSCRIPT"; payload: { videoId: string } }
   | { type: "GET_MODELS" }
+  | { type: "CHECK_TRANSCRIPT"; payload: { videoId: string } }
   | { type: "STATE_UPDATE" };
 
 export type BackgroundResponse =
@@ -46,4 +47,5 @@ export type BackgroundResponse =
   | { type: "CONNECTION_TEST"; payload: { models: string[] } | { error: string } }
   | { type: "CHAT_RESPONSE"; payload: ChatMessage }
   | { type: "TRANSCRIPT_RESULT"; payload: TranscriptLine[] }
-  | { type: "MODELS_LIST"; payload: string[] };
+  | { type: "MODELS_LIST"; payload: string[] }
+  | { type: "TRANSCRIPT_STATUS"; payload: { available: boolean } };
