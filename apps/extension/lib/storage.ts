@@ -1,3 +1,5 @@
+import { storage } from "#imports";
+
 export interface AppConfig {
   provider: "anthropic" | "openai";
   apiKey: string;
@@ -41,7 +43,6 @@ export async function setState(updates: Partial<AppState>): Promise<void> {
   await browser.storage.local.set(updates);
 }
 
-// TODO check if wxt provides hooks otherwise use @mantine/hooks 'useLocalStorage'
 export async function getConfig(): Promise<AppConfig | null> {
   const { config } = (await browser.storage.local.get("config")) as { config?: AppConfig | null };
   return config ?? null;
@@ -84,3 +85,11 @@ export async function clearMessages(videoId: string): Promise<void> {
 export async function clearAll(): Promise<void> {
   await browser.storage.local.clear();
 }
+
+export const $videoId = storage.defineItem<string | null>("local:videoId", {
+  fallback: null,
+});
+
+export const $messages = storage.defineItem<Record<string, ChatMessage[]>>("local:messages", {
+  fallback: {},
+});
