@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { useState } from "react";
-import type { ProviderType } from "@play-ai/ai/core/types";
+import type { ProviderType, BackgroundResponse } from "@play-ai/ai/core/types";
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
 
@@ -96,20 +96,22 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
     setErrorMessage("");
 
     try {
-      const response = await sendMessage<{ models: string[] } | { error: string }>({
+      const response = await sendMessage<BackgroundResponse>({
         type: "TEST_CONNECTION",
         payload: { provider, baseUrl, apiKey },
       });
 
       if (!response) {
         setConnectionStatus("error");
-        setErrorMessage("No response from background service. Try again.");
-      } else if ("error" in response) {
-        setConnectionStatus("error");
-        setErrorMessage(response.error);
-      } else if ("models" in response) {
-        setConnectionStatus("connected");
-        setAvailableModels(response.models);
+        setErrorMessage("No response from background script");
+      } else if (response.type === "CONNECTION_TEST") {
+        if ("error" in response.payload) {
+          setConnectionStatus("error");
+          setErrorMessage(response.payload.error);
+        } else {
+          setConnectionStatus("connected");
+          setAvailableModels(response.payload.models);
+        }
       }
     } catch (error) {
       setConnectionStatus("error");

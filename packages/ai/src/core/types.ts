@@ -41,6 +41,7 @@ export type BackgroundMessage =
 
 export type BackgroundResponse =
   | { type: "ERROR"; payload: { message: string } }
-  | { type: "STATE"; payload: ExtensionState | { models: string[] } }
+  | { type: "STATE"; payload: ExtensionState }
+  | { type: "CONNECTION_TEST"; payload: { models: string[] } | { error: string } }
   | { type: "CHAT_RESPONSE"; payload: ChatMessage }
   | { type: "TRANSCRIPT_RESULT"; payload: TranscriptLine[] };
