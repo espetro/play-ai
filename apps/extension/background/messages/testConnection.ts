@@ -5,20 +5,14 @@ type TestConnectionMessage = Extract<BackgroundMessage, { type: "TEST_CONNECTION
 
 export async function testConnectionHandler(
   message: TestConnectionMessage,
-): Promise<BackgroundResponse> {
+): Promise<{ models: string[] } | { error: string }> {
   try {
     const { provider, baseUrl, apiKey } = message.payload;
     const models = await fetchModels({ provider, baseUrl, apiKey });
-    return {
-      type: "STATE",
-      payload: { models },
-    } as unknown as BackgroundResponse;
+    return { models };
   } catch (error) {
     return {
-      type: "ERROR",
-      payload: {
-        message: error instanceof Error ? error.message : "Failed to test connection",
-      },
+      error: error instanceof Error ? error.message : "Failed to test connection",
     };
   }
 }
