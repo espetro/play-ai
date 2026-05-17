@@ -63,7 +63,7 @@ export const MessageAction = ({
   children,
   label,
   variant = "ghost",
-  size = "icon-sm",
+  size = "sm",
   ...props
 }: MessageActionProps) => {
   const button = (
@@ -223,7 +223,7 @@ export const MessageBranchPrevious = ({ children, ...props }: MessageBranchPrevi
       aria-label="Previous branch"
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
-      size="icon-sm"
+      size="sm"
       type="button"
       variant="ghost"
       {...props}
@@ -243,7 +243,7 @@ export const MessageBranchNext = ({ children, ...props }: MessageBranchNextProps
       aria-label="Next branch"
       disabled={totalBranches <= 1}
       onClick={goToNext}
-      size="icon-sm"
+      size="sm"
       type="button"
       variant="ghost"
       {...props}

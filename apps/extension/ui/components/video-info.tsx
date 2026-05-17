@@ -1,6 +1,6 @@
 interface VideoInfoProps {
   videoId: string | null;
-  currentTimestamp: number;
+  currentTimestamp?: number;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -16,7 +16,7 @@ function formatTimestamp(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function VideoInfo({ videoId, currentTimestamp }: VideoInfoProps) {
+export function VideoInfo({ videoId, currentTimestamp = 0 }: VideoInfoProps) {
   return (
     <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
       <span className="font-medium text-foreground">

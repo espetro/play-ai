@@ -7,6 +7,7 @@ interface ChatInputProps {
   disabled?: boolean;
 }
 
+/** @deprecated use prompt-input from AI Elements */
 export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [input, setInput] = useState("");
 
