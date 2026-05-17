@@ -8,3 +8,4 @@ bun.lockb
 .DS_Store
 .env.local
 .osgrep
+.wxt/
