@@ -1,5 +1,6 @@
 import { streamText, dynamicTool, stepCountIs } from "ai";
-import { z } from "zod";
+import * as v from "valibot";
+import { valibotSchema } from "@ai-sdk/valibot";
 import { buildProvider } from "@play-ai/ai";
 import type { BackgroundMessage, BackgroundResponse, ChatMessage } from "@play-ai/ai/core/types";
 import { storage } from "~/background/storage";
@@ -86,7 +87,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
         transcript: dynamicTool({
           description:
             "Fetches the full transcript/subtitles of the current YouTube video. Call this whenever the user asks about video content, what was said, specific moments, quotes, timestamps, or anything that requires knowing what the video contains.",
-          inputSchema: z.object({}),
+          inputSchema: valibotSchema(v.object({})),
           execute: async () => {
             const tabs = await browser.tabs.query({
               url: `*://*.youtube.com/watch?v=${videoId}*`,

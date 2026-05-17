@@ -1,3 +1,5 @@
+export type ProviderType = "anthropic" | "openai";
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -6,7 +8,7 @@ export interface ChatMessage {
 }
 
 export interface AppConfig {
-  provider: "anthropic" | "openai";
+  provider: ProviderType;
   apiKey: string;
   baseUrl?: string;
   model: string;
@@ -30,7 +32,10 @@ export type BackgroundMessage =
   | { type: "SET_CONFIG"; payload: AppConfig }
   | { type: "SEND_MESSAGE"; payload: { content: string } }
   | { type: "CLEAR_CHAT"; payload: { videoId: string } }
-  | { type: "TEST_CONNECTION"; payload: { provider: "anthropic" | "openai"; baseUrl?: string; apiKey: string } }
+  | {
+      type: "TEST_CONNECTION";
+      payload: { provider: ProviderType; baseUrl?: string; apiKey: string };
+    }
   | { type: "GET_TRANSCRIPT"; payload: { videoId: string } }
   | { type: "STATE_UPDATE" };
 
