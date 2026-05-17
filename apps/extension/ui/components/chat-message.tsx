@@ -1,8 +1,8 @@
-import type { ChatMessage } from "@play-ai/ai/core/types";
+import type { ChatMessage as ChatMessageContent } from "@play-ai/ai/core/types";
 import { Message, MessageContent } from "~/components/ai-elements/message";
 
 interface ChatMessageProps {
-  message: ChatMessage;
+  message: ChatMessageContent;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -12,3 +12,5 @@ export function ChatMessage({ message }: ChatMessageProps) {
     </Message>
   );
 }
+
+export default ChatMessage;

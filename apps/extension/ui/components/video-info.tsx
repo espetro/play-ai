@@ -26,3 +26,5 @@ export function VideoInfo({ videoId, currentTimestamp = 0 }: VideoInfoProps) {
     </div>
   );
 }
+
+export default VideoInfo;

@@ -1,13 +1,23 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { ChatMessage } from "@play-ai/ai/core/types";
-import { ChatMessage as ChatMessageItem } from "./chat-message";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 
+const ChatMessageItem = lazy(() => import("./chat-message"));
+
 interface ChatContainerProps {
   messages: ChatMessage[];
   onSendMessage: (content: string) => void;
+}
+
+function MessageSkeleton() {
+  return (
+    <div className="space-y-2">
+      <div className="h-3 bg-muted rounded animate-pulse" />
+      <div className="h-3 bg-muted rounded animate-pulse w-5/6" />
+    </div>
+  );
 }
 
 export function ChatContainer({ messages, onSendMessage }: ChatContainerProps) {
@@ -30,7 +40,13 @@ export function ChatContainer({ messages, onSendMessage }: ChatContainerProps) {
             No messages yet. Start by asking about the video.
           </div>
         ) : (
-          messages.map((msg) => <ChatMessageItem key={msg.id} message={msg} />)
+          <Suspense fallback={<MessageSkeleton />}>
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <ChatMessageItem key={msg.id} message={msg} />
+              ))}
+            </div>
+          </Suspense>
         )}
       </ScrollArea>
       <div className="border-t border-border p-4">
@@ -48,3 +64,5 @@ export function ChatContainer({ messages, onSendMessage }: ChatContainerProps) {
     </div>
   );
 }
+
+export default ChatContainer;
