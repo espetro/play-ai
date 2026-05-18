@@ -1,4 +1,5 @@
 import type { BackgroundMessage, BackgroundResponse, Conversation } from "@play-ai/ai/core/types";
+import { storage } from "~/background/storage";
 import { abortStreamForConversation } from "./sendMessage";
 
 type DeleteConversationMessage = Extract<BackgroundMessage, { type: "DELETE_CONVERSATION" }>;
@@ -25,7 +26,7 @@ export async function deleteConversationHandler(
   const updated = { ...conversations };
   delete updated[conversationId];
 
-  const updates: Record<string, any> = {
+  const updates: Record<string, unknown> = {
     conversations: updated,
   };
 
@@ -43,5 +44,5 @@ export async function deleteConversationHandler(
 
   await browser.storage.local.set(updates);
 
-  return { type: "STATE" as const, payload: { conversations: updated } as any };
+  return { type: "STATE" as const, payload: await storage.getAll() };
 }

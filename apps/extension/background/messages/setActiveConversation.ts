@@ -1,4 +1,5 @@
 import type { BackgroundMessage, BackgroundResponse } from "@play-ai/ai/core/types";
+import { storage } from "~/background/storage";
 
 type SetActiveConversationMessage = Extract<BackgroundMessage, { type: "SET_ACTIVE_CONVERSATION" }>;
 
@@ -17,5 +18,5 @@ export async function setActiveConversationHandler(
     port.postMessage({ type: "STATE_UPDATE", patch: {} });
   }
 
-  return { type: "STATE" as const, payload: {} as any };
+  return { type: "STATE" as const, payload: await storage.getAll() };
 }

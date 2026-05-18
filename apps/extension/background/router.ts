@@ -13,13 +13,13 @@ export const appRouter = router({
     onActivated: procedure.subscription(async function* ({ signal }) {
       type TabOrNull = Awaited<ReturnType<typeof browser.tabs.get>> | null;
       yield* chromeEventToAsyncGen<TabOrNull>(
-        ((cb) => {
-          const listener = (info: { tabId: number; windowId?: number }) => {
-            browser.tabs.get(info.tabId).then((tab) => cb((tab as any) as TabOrNull)).catch(() => cb(null));
+        (cb) => {
+          const listener = (info: { tabId: number; windowId: number }) => {
+            browser.tabs.get(info.tabId).then((tab) => cb(tab)).catch(() => cb(null));
           };
-          browser.tabs.onActivated.addListener(listener as any);
-          return () => browser.tabs.onActivated.removeListener(listener as any);
-        }) as (cb: (arg: TabOrNull) => void) => () => void,
+          browser.tabs.onActivated.addListener(listener);
+          return () => browser.tabs.onActivated.removeListener(listener);
+        },
         signal,
       );
     }),

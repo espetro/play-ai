@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
 import { buildLanguageModel } from "@play-ai/ai";
 import type {
+  AppConfig,
   BackgroundMessage,
   BackgroundResponse,
   ChatMessage,
@@ -83,7 +84,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     "activeConfigId",
   ])) as {
     conversations?: Record<string, Conversation>;
-    configs?: any[];
+    configs?: AppConfig[];
     activeConfigId?: string | null;
   };
 
@@ -235,26 +236,20 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
         updatedAt: Date.now(),
       },
     };
+    const { streamingMessages: existingStreaming } = (await browser.storage.local.get([
+      "streamingMessages",
+    ])) as { streamingMessages?: Record<string, string> };
+    const streamingMessages = { ...existingStreaming };
+    delete streamingMessages[conversationId];
     await browser.storage.local.set({
       conversations: finalConversations,
-      streamingMessages: {
-        ...((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages,
-      },
+      streamingMessages,
     });
-    const streamingMessages =
-      ((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages || {};
-    delete streamingMessages[conversationId];
-    await browser.storage.local.set({ streamingMessages });
 
     activeStreams.delete(conversationId);
     await broadcastStateUpdate();
   } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      (error as any).name === "AbortError"
-    ) {
+    if (error instanceof DOMException && error.name === "AbortError") {
       activeStreams.delete(conversationId);
       return { type: "ERROR", payload: { message: "Stream cancelled" } };
     }
@@ -273,8 +268,10 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       conversations: finalConversations,
     });
 
-    const streamingMessages =
-      ((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages || {};
+    const { streamingMessages: errorStreaming } = (await browser.storage.local.get([
+      "streamingMessages",
+    ])) as { streamingMessages?: Record<string, string> };
+    const streamingMessages = { ...errorStreaming };
     delete streamingMessages[conversationId];
     await browser.storage.local.set({ streamingMessages });
 
