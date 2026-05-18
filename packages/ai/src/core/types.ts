@@ -20,18 +20,29 @@ export interface TranscriptLine {
   text: string;
 }
 
+export interface Conversation {
+  id: string;
+  videoId: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ExtensionState {
   config?: AppConfig;
   videoId?: string;
-  messages: Record<string, ChatMessage[]>;
+  conversations: Record<string, Conversation>;
+  activeConversationId?: string;
   transcript?: TranscriptLine[];
 }
 
 export type BackgroundMessage =
   | { type: "GET_STATE" }
   | { type: "SET_CONFIG"; payload: AppConfig }
-  | { type: "SEND_MESSAGE"; payload: { videoId: string; content: string } }
-  | { type: "CLEAR_CHAT"; payload: { videoId: string } }
+  | { type: "SEND_MESSAGE"; payload: { conversationId: string; content: string } }
+  | { type: "CREATE_CONVERSATION"; payload: { videoId: string } }
+  | { type: "DELETE_CONVERSATION"; payload: { conversationId: string } }
+  | { type: "SET_ACTIVE_CONVERSATION"; payload: { conversationId: string | null } }
   | {
       type: "TEST_CONNECTION";
       payload: { provider: ProviderType; baseUrl?: string; apiKey: string };
@@ -46,6 +57,7 @@ export type BackgroundResponse =
   | { type: "STATE"; payload: ExtensionState }
   | { type: "CONNECTION_TEST"; payload: { models: string[] } | { error: string } }
   | { type: "CHAT_RESPONSE"; payload: ChatMessage }
+  | { type: "CONVERSATION_CREATED"; payload: { conversationId: string } }
   | { type: "TRANSCRIPT_RESULT"; payload: TranscriptLine[] }
   | { type: "MODELS_LIST"; payload: string[] }
   | { type: "TRANSCRIPT_STATUS"; payload: { available: boolean } };
