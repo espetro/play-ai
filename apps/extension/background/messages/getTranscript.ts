@@ -1,5 +1,5 @@
 import type { BackgroundMessage, BackgroundResponse } from "@play-ai/ai/core/types";
-import { storage } from "~/background/storage";
+import { getTranscriptCache } from "~/background/storage";
 
 type GetTranscriptMessage = Extract<BackgroundMessage, { type: "GET_TRANSCRIPT" }>;
 
@@ -16,8 +16,7 @@ export async function getTranscriptHandler(
       };
     }
 
-    const state = await storage.getAll();
-    const transcript = state.transcript ?? [];
+    const transcript = await getTranscriptCache(videoId);
 
     if (!transcript || transcript.length === 0) {
       return {
