@@ -31,6 +31,9 @@ export default function Root() {
         <a href="#/" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100">
           Chat
         </a>
+        <a href="#/conversations" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100">
+          History
+        </a>
         <a href="#/settings" className="px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100">
           Settings
         </a>
