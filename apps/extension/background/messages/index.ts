@@ -8,6 +8,9 @@ import { testConnectionHandler } from "./testConnection";
 import { getTranscriptHandler } from "./getTranscript";
 import { getModelsHandler } from "./getModels";
 import { checkTranscriptHandler } from "./checkTranscript";
+import { createConversationHandler } from "./createConversation";
+import { deleteConversationHandler } from "./deleteConversation";
+import { setActiveConversationHandler } from "./setActiveConversation";
 
 type HandlerForType<K extends BackgroundMessage["type"]> = (
   message: Extract<BackgroundMessage, { type: K }>,
@@ -19,6 +22,9 @@ const handlers: {
   GET_STATE: getStateHandler as HandlerForType<"GET_STATE">,
   SET_CONFIG: setConfigHandler as HandlerForType<"SET_CONFIG">,
   SEND_MESSAGE: sendMessageHandler as HandlerForType<"SEND_MESSAGE">,
+  CREATE_CONVERSATION: createConversationHandler as HandlerForType<"CREATE_CONVERSATION">,
+  DELETE_CONVERSATION: deleteConversationHandler as HandlerForType<"DELETE_CONVERSATION">,
+  SET_ACTIVE_CONVERSATION: setActiveConversationHandler as HandlerForType<"SET_ACTIVE_CONVERSATION">,
   CLEAR_CHAT: clearChatHandler as HandlerForType<"CLEAR_CHAT">,
   TEST_CONNECTION: testConnectionHandler as HandlerForType<"TEST_CONNECTION">,
   GET_TRANSCRIPT: getTranscriptHandler as HandlerForType<"GET_TRANSCRIPT">,
@@ -89,4 +95,7 @@ export {
   getTranscriptHandler,
   getModelsHandler,
   checkTranscriptHandler,
+  createConversationHandler,
+  deleteConversationHandler,
+  setActiveConversationHandler,
 };
