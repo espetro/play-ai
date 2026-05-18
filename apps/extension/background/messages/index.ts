@@ -24,7 +24,8 @@ const handlers: {
   SEND_MESSAGE: sendMessageHandler as HandlerForType<"SEND_MESSAGE">,
   CREATE_CONVERSATION: createConversationHandler as HandlerForType<"CREATE_CONVERSATION">,
   DELETE_CONVERSATION: deleteConversationHandler as HandlerForType<"DELETE_CONVERSATION">,
-  SET_ACTIVE_CONVERSATION: setActiveConversationHandler as HandlerForType<"SET_ACTIVE_CONVERSATION">,
+  SET_ACTIVE_CONVERSATION:
+    setActiveConversationHandler as HandlerForType<"SET_ACTIVE_CONVERSATION">,
   CLEAR_CHAT: clearChatHandler as HandlerForType<"CLEAR_CHAT">,
   TEST_CONNECTION: testConnectionHandler as HandlerForType<"TEST_CONNECTION">,
   GET_TRANSCRIPT: getTranscriptHandler as HandlerForType<"GET_TRANSCRIPT">,

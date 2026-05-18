@@ -94,15 +94,17 @@ const YOUTUBE_CONSENT_COOKIES = [
 async function setupYouTubeCookies() {
   if (import.meta.env.PROD) return;
 
-  for (const { name, value } of YOUTUBE_CONSENT_COOKIES) {
-    await browser.cookies.set({
-      url: "https://www.youtube.com",
-      name,
-      value,
-      domain: ".youtube.com",
-      path: "/",
-      secure: true,
-      sameSite: "lax",
-    });
-  }
+  await Promise.all(
+    YOUTUBE_CONSENT_COOKIES.map(({ name, value }) =>
+      browser.cookies.set({
+        url: "https://www.youtube.com",
+        name,
+        value,
+        domain: ".youtube.com",
+        path: "/",
+        secure: true,
+        sameSite: "lax",
+      })
+    )
+  );
 }

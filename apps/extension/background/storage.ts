@@ -16,12 +16,8 @@ export interface TranscriptCacheEntry {
   fetchedAt: number;
 }
 
-export async function getTranscriptCache(
-  videoId: string,
-): Promise<TranscriptLine[] | null> {
-  const { transcriptCache } = (await browser.storage.local.get(
-    "transcriptCache",
-  )) as {
+export async function getTranscriptCache(videoId: string): Promise<TranscriptLine[] | null> {
+  const { transcriptCache } = (await browser.storage.local.get("transcriptCache")) as {
     transcriptCache?: Record<string, TranscriptCacheEntry>;
   };
   const entry = transcriptCache?.[videoId];
@@ -30,13 +26,8 @@ export async function getTranscriptCache(
   return entry.lines;
 }
 
-export async function setTranscriptCache(
-  videoId: string,
-  lines: TranscriptLine[],
-): Promise<void> {
-  const { transcriptCache } = (await browser.storage.local.get(
-    "transcriptCache",
-  )) as {
+export async function setTranscriptCache(videoId: string, lines: TranscriptLine[]): Promise<void> {
+  const { transcriptCache } = (await browser.storage.local.get("transcriptCache")) as {
     transcriptCache?: Record<string, TranscriptCacheEntry>;
   };
   await browser.storage.local.set({

@@ -2,7 +2,13 @@ import { streamText, dynamicTool, stepCountIs } from "ai";
 import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
 import { buildProvider } from "@play-ai/ai";
-import type { BackgroundMessage, BackgroundResponse, ChatMessage, Conversation, TranscriptLine } from "@play-ai/ai/core/types";
+import type {
+  BackgroundMessage,
+  BackgroundResponse,
+  ChatMessage,
+  Conversation,
+  TranscriptLine,
+} from "@play-ai/ai/core/types";
 import { storage, getTranscriptCache, setTranscriptCache } from "~/background/storage";
 import type { TranscriptResponse } from "~/lib/messaging";
 
@@ -71,7 +77,10 @@ async function flushStreamingMessage(conversationId: string, content: string) {
 
 export async function sendMessageHandler(message: SendMessageMessage): Promise<BackgroundResponse> {
   const { conversationId, content } = message.payload;
-  const { conversations, config } = (await browser.storage.local.get(["conversations", "config"])) as {
+  const { conversations, config } = (await browser.storage.local.get([
+    "conversations",
+    "config",
+  ])) as {
     conversations?: Record<string, Conversation>;
     config?: any;
   };
@@ -167,10 +176,9 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
                 if (!tab?.id)
                   return "YouTube video tab not found. Make sure the video tab is still open.";
                 try {
-                  const response = await browser.tabs.sendMessage<TranscriptResponse>(
-                    tab.id!,
-                    { type: "FETCH_TRANSCRIPT" },
-                  );
+                  const response = await browser.tabs.sendMessage<TranscriptResponse>(tab.id!, {
+                    type: "FETCH_TRANSCRIPT",
+                  });
                   if (!response?.available || !response.lines?.length) {
                     return "No transcript available for this video. It may not have subtitles enabled.";
                   }
@@ -227,16 +235,24 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     };
     await browser.storage.local.set({
       conversations: finalConversations,
-      streamingMessages: { ...(await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages },
+      streamingMessages: {
+        ...((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages,
+      },
     });
-    const streamingMessages = (await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages || {};
+    const streamingMessages =
+      ((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages || {};
     delete streamingMessages[conversationId];
     await browser.storage.local.set({ streamingMessages });
 
     activeStreams.delete(conversationId);
     await broadcastStateUpdate();
   } catch (error) {
-    if (error && typeof error === "object" && "name" in error && (error as any).name === "AbortError") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      (error as any).name === "AbortError"
+    ) {
       activeStreams.delete(conversationId);
       return { type: "ERROR", payload: { message: "Stream cancelled" } };
     }
@@ -255,7 +271,8 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       conversations: finalConversations,
     });
 
-    const streamingMessages = (await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages || {};
+    const streamingMessages =
+      ((await browser.storage.local.get(["streamingMessages"])) as any).streamingMessages || {};
     delete streamingMessages[conversationId];
     await browser.storage.local.set({ streamingMessages });
 

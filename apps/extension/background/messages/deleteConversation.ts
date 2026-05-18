@@ -11,15 +11,16 @@ export async function deleteConversationHandler(
   // Abort any active stream
   abortStreamForConversation(conversationId);
 
-  const { conversations, activeConversationId, streamingMessages } = (await browser.storage.local.get([
-    "conversations",
-    "activeConversationId",
-    "streamingMessages",
-  ])) as {
-    conversations?: Record<string, Conversation>;
-    activeConversationId?: string;
-    streamingMessages?: Record<string, string>;
-  };
+  const { conversations, activeConversationId, streamingMessages } =
+    (await browser.storage.local.get([
+      "conversations",
+      "activeConversationId",
+      "streamingMessages",
+    ])) as {
+      conversations?: Record<string, Conversation>;
+      activeConversationId?: string;
+      streamingMessages?: Record<string, string>;
+    };
 
   const updated = { ...conversations };
   delete updated[conversationId];
