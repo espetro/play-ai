@@ -43,6 +43,8 @@ export default defineConfig({
       chromiumProfile: `${process.env.CHROME_USER_DATA_DIR}/Default`,
       keepProfileChanges: true,
     }),
+    // Expose a TCP CDP endpoint so agent-browser can connect via --cdp 9222
+    chromiumArgs: ["--remote-debugging-port=9222"],
   },
   vite: () => ({
     plugins: [react(), tailwindcss()],

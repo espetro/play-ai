@@ -9,3 +9,4 @@ bun.lockb
 .env.local
 .osgrep
 .wxt/
+tmp/qa/
