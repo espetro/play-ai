@@ -20,6 +20,8 @@ const ChatMessageItem = lazy(() => import("./chat-message"));
 
 interface ChatContainerProps {
   messages: ChatMessage[];
+  streamingContent?: string | null;
+  isStreaming?: boolean;
   onSendMessage: (content: string) => void;
   currentModel?: string;
   onModelChange?: (model: string) => void;
@@ -37,6 +39,8 @@ function MessageSkeleton() {
 
 export function ChatContainer({
   messages,
+  streamingContent,
+  isStreaming,
   onSendMessage,
   currentModel,
   onModelChange,
@@ -48,6 +52,7 @@ export function ChatContainer({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isStreaming) return;
     const content = input.trim();
     if (content) {
       onSendMessage(content);
@@ -77,7 +82,7 @@ export function ChatContainer({
   return (
     <div className="flex h-full flex-col gap-4">
       <ScrollArea className="flex-1 space-y-3 p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !streamingContent ? (
           <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             Ask anything. Open a YouTube video to chat about it.
           </div>
@@ -87,6 +92,14 @@ export function ChatContainer({
               {messages.map((msg) => (
                 <ChatMessageItem key={msg.id} message={msg} />
               ))}
+              {streamingContent && (
+                <div className="p-3 rounded-lg bg-muted">
+                  <div className="text-sm text-foreground">
+                    {streamingContent}
+                    <span className="inline-block ml-1 w-2 h-4 bg-foreground animate-pulse" />
+                  </div>
+                </div>
+              )}
             </div>
           </Suspense>
         )}
@@ -132,8 +145,11 @@ export function ChatContainer({
             placeholder="Ask anything..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            disabled={isStreaming}
           />
-          <Button type="submit">Send</Button>
+          <Button type="submit" disabled={isStreaming}>
+            {isStreaming ? "..." : "Send"}
+          </Button>
         </form>
       </div>
     </div>
