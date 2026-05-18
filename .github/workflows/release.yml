@@ -25,18 +25,14 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Build & zip extension
-        run: bunx wxt zip -b ${{ matrix.browser }} --project apps/extension
-
-      - name: Debug output
-        run: |
-          echo "=== Contents of .output ===" && ls -la apps/extension/.output/
-          echo "=== Zip files ===" && find apps/extension/.output -name "*.zip" -ls
+        working-directory: apps/extension
+        run: bun run zip -- -b ${{ matrix.browser }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: apps/extension/.output
+          path: apps/extension/.output/play-ai-extension-0.1.0-${{ matrix.browser }}.zip
           retention-days: 3
           if-no-files-found: error
 
