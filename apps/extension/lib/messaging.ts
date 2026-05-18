@@ -1,4 +1,4 @@
-import type { AppConfig, ExtensionState } from "@play-ai/ai/core/types";
+import type { AppConfig, ExtensionState, TranscriptLine } from "@play-ai/ai/core/types";
 
 export type MessageType =
   | { type: "GET_STATE" }
@@ -16,7 +16,7 @@ export type MessageType =
 
 export type TranscriptResponse = {
   available: boolean;
-  lines: string[] | null;
+  lines: TranscriptLine[] | null;
 };
 
 // Use the callback-based API for reliability across all Chrome versions and MV3
