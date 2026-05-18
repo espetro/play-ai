@@ -33,7 +33,6 @@ export interface ExtensionState {
   videoId?: string;
   conversations: Record<string, Conversation>;
   activeConversationId?: string;
-  transcript?: TranscriptLine[];
 }
 
 export type BackgroundMessage =

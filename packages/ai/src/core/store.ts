@@ -7,17 +7,17 @@ export interface StorageAdapter {
 }
 
 const DEFAULT_STATE: ExtensionState = {
-  messages: {},
+  conversations: {},
 };
 
 export function createStorage(adapter: StorageAdapter) {
   async function getAll(): Promise<ExtensionState> {
-    const data = await adapter.get(["config", "videoId", "messages", "transcript"]);
+    const data = await adapter.get(["config", "videoId", "conversations", "activeConversationId"]);
     return {
       config: (data.config as ExtensionState["config"]) ?? undefined,
       videoId: (data.videoId as ExtensionState["videoId"]) ?? undefined,
-      messages: (data.messages as ExtensionState["messages"]) ?? DEFAULT_STATE.messages,
-      transcript: (data.transcript as ExtensionState["transcript"]) ?? undefined,
+      conversations: (data.conversations as ExtensionState["conversations"]) ?? DEFAULT_STATE.conversations,
+      activeConversationId: (data.activeConversationId as ExtensionState["activeConversationId"]) ?? undefined,
     };
   }
 
@@ -30,8 +30,8 @@ export function createStorage(adapter: StorageAdapter) {
     await adapter.set({
       config: partial.config ?? current.config,
       videoId: partial.videoId ?? current.videoId,
-      messages: partial.messages ?? current.messages,
-      transcript: partial.transcript ?? current.transcript,
+      conversations: partial.conversations ?? current.conversations,
+      activeConversationId: partial.activeConversationId ?? current.activeConversationId,
     });
   }
 
