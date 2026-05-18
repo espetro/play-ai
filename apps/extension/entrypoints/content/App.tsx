@@ -4,6 +4,7 @@ import { extractVideoId } from "~/lib/youtube";
 import { sendMessage } from "~/lib/messaging";
 import type { ChatMessage } from "~/lib/storage";
 import type { Browser } from "wxt/browser";
+import type { TranscriptLine, TranscriptResponse } from "~/lib/messaging";
 
 interface YouTubePlayerResponse {
   videoDetails?: { videoId?: string };
@@ -22,11 +23,6 @@ interface CaptionTrack {
   languageCode: string;
   baseUrl: string;
   kind?: string;
-}
-
-interface TranscriptResponse {
-  available: boolean;
-  lines: string[] | null;
 }
 
 declare global {
@@ -70,14 +66,33 @@ export default function App() {
   useEffect(() => {
     const currentVideoId = extractVideoId();
 
-    const getValidTracks = () => {
+    const getValidTracks = async (): Promise<CaptionTrack[] | null> => {
       const player = window.ytInitialPlayerResponse;
       // Guard against SPA navigation race: reject stale player response
       if (player?.videoDetails?.videoId && player.videoDetails.videoId !== currentVideoId) {
         return null;
       }
-      const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      if (!tracks?.length) return null;
+      let tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      if (!tracks?.length) {
+        // SPA fallback: fetch watch page HTML and extract ytInitialPlayerResponse
+        try {
+          const html = await fetch(
+            `https://www.youtube.com/watch?v=${currentVideoId}`,
+          ).then((r) => r.text());
+          const YT_PLAYER_RE =
+            /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+|<\/script)/;
+          const match = html.match(YT_PLAYER_RE);
+          if (match) {
+            const freshPlayer: YouTubePlayerResponse = JSON.parse(match[1]);
+            tracks =
+              freshPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks ??
+              null;
+          }
+        } catch {
+          return null;
+        }
+        if (!tracks?.length) return null;
+      }
       // Prefer manually-created over auto-generated (asr), then English first
       return [...tracks].sort((a, b) => {
         const aIsAsr = a.kind === "asr" ? 1 : 0;
@@ -87,13 +102,14 @@ export default function App() {
       });
     };
 
-    const handleCheckTranscript = (
+    const handleCheckTranscript = async (
       message: { type: string },
       _sender: Browser.runtime.MessageSender,
       sendResponse: (r: { available: boolean }) => void,
     ) => {
       if (message.type !== "CHECK_TRANSCRIPT") return false;
-      sendResponse({ available: getValidTracks() !== null });
+      const tracks = await getValidTracks();
+      sendResponse({ available: tracks !== null });
       return false;
     };
 
@@ -104,29 +120,44 @@ export default function App() {
     ) => {
       if (message.type !== "FETCH_TRANSCRIPT") return false;
 
-      const tracks = getValidTracks();
-      if (!tracks) {
-        sendResponse({ available: false, lines: null });
-        return false;
-      }
+      (async () => {
+        const tracks = await getValidTracks();
+        if (!tracks) {
+          sendResponse({ available: false, lines: null });
+          return;
+        }
 
-      const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
+        const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
 
-      fetch(track.baseUrl + "&fmt=json3")
-        .then((res) => res.json())
-        .then((data) => {
-          const lines: string[] = (data.events ?? [])
-            .filter((e: { segs?: unknown[] }) => e.segs)
-            .map((e: { segs?: Array<{ utf8?: string }> }) =>
-              (e.segs ?? [])
-                .map((s) => s.utf8 ?? "")
-                .join("")
-                .trim(),
+        try {
+          const res = await fetch(track.baseUrl + "&fmt=json3");
+          const data = await res.json();
+          const lines: TranscriptLine[] = (data.events ?? [])
+            .filter(
+              (e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) =>
+                e.segs,
             )
-            .filter(Boolean);
+            .map(
+              (e: {
+                segs?: Array<{ utf8?: string; tOffsetMs?: number }>;
+                tStartMs?: number;
+                dDurationMs?: number;
+              }) => {
+                const text = (e.segs ?? [])
+                  .map((s) => s.utf8 ?? "")
+                  .join("")
+                  .trim();
+                const start = (e.tStartMs ?? 0) / 1000; // convert ms → seconds
+                const end = start + (e.dDurationMs ?? 0) / 1000;
+                return { start, end, text };
+              },
+            )
+            .filter((r) => r.text.length > 0);
           sendResponse({ available: true, lines });
-        })
-        .catch(() => sendResponse({ available: false, lines: null }));
+        } catch {
+          sendResponse({ available: false, lines: null });
+        }
+      })();
 
       return true;
     };
