@@ -1,4 +1,3 @@
-import * as v from "valibot";
 import { useForm, useField, Form as FormischForm, getInput } from "@formisch/react";
 import type { AppConfig } from "~/lib/storage";
 import { sendMessage } from "~/lib/messaging";
@@ -15,6 +14,7 @@ import {
 } from "~/components/ui/select";
 import { useState } from "react";
 import type { ProviderType, BackgroundResponse } from "@play-ai/ai/core/types";
+import ProviderSchema, { isProvider, type ProviderForm } from "~/lib/schemas/provider-form";
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
 
@@ -28,17 +28,6 @@ const DEFAULT_BASE_URLS = {
   anthropic: "https://api.anthropic.com",
   openai: "https://api.openai.com/v1",
 };
-
-const ProviderSchema = v.object({
-  provider: v.union([v.literal("anthropic"), v.literal("openai")]),
-  baseUrl: v.pipe(v.string(), v.url("Valid URL required")),
-  apiKey: v.string(),
-  model: v.pipe(v.string(), v.nonEmpty("Please select a model")),
-});
-
-type ProviderForm = v.InferOutput<typeof ProviderSchema>;
-
-const isProvider = (_: unknown): _ is ProviderType => _ === "anthropic" || _ === "openai";
 
 export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderSetupFormProps) => {
   const [showKey, setShowKey] = useState(false);

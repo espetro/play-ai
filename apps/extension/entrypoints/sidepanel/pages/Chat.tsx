@@ -4,12 +4,15 @@ import { VideoInfo } from "~/ui/components";
 import {
   $videoId,
   $conversations,
-  $config,
+  $configs,
+  $activeConfigId,
   $activeConversationId,
   $streamingMessages,
+  getActiveConfig,
 } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
 import { sendMessage } from "~/lib/messaging";
+import { trpcClient } from "~/lib/trpc";
 import type { ChatMessage, BackgroundResponse, Conversation } from "@play-ai/ai/core/types";
 
 type TranscriptStatus = "idle" | "checking" | "available" | "unavailable";
@@ -19,9 +22,20 @@ export default function Chat() {
   const conversations = useStorageItem($conversations, {});
   const activeConversationId = useStorageItem($activeConversationId, null);
   const streamingMessages = useStorageItem($streamingMessages, {});
-  const config = useStorageItem($config, null);
+  const configs = useStorageItem($configs, []);
+  const activeConfigId = useStorageItem($activeConfigId, null);
+  const [config, setConfig] = useState<any>(null);
   const [transcriptStatus, setTranscriptStatus] = useState<TranscriptStatus>("idle");
   const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    if (activeConfigId && configs.length > 0) {
+      const activeConfig = configs.find((c) => c.id === activeConfigId);
+      setConfig(activeConfig || null);
+    } else {
+      setConfig(null);
+    }
+  }, [activeConfigId, configs]);
 
   const handleAddOptimisticMessage = useCallback((message: ChatMessage) => {
     setOptimisticMessages((prev) => [...prev, message]);
@@ -81,11 +95,23 @@ export default function Chat() {
     }
   };
 
+  const extractVideoId = (url: string | undefined): string | null => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      return u.hostname.includes("youtube.com") ? u.searchParams.get("v") : null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleStartNewChat = async () => {
-    if (!currentTabVideoId) return;
+    const tabs = await trpcClient.tabs.list.query();
+    const activeTab = tabs.find((t) => t.active);
+    const videoId = extractVideoId(activeTab?.url) ?? "_default";
     const createRes = await sendMessage<BackgroundResponse>({
       type: "CREATE_CONVERSATION",
-      payload: { videoId: currentTabVideoId },
+      payload: { videoId },
     });
     if (createRes?.type === "CONVERSATION_CREATED") {
       // New conversation is auto-activated by createConversationHandler
@@ -112,22 +138,17 @@ export default function Chat() {
   return (
     <div className="flex h-full flex-col">
       <VideoInfo videoId={conversationVideoId ?? null} transcriptStatus={transcriptStatus} />
-      {!isCurrentTab && activeConversation && (
-        <div className="bg-blue-50 border-b border-blue-200 px-3 py-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-blue-900">
-              📺 Current tab:{" "}
-              <span className="font-semibold">{currentTabVideoId || "No video"}</span>
-            </span>
-            <button
-              onClick={handleStartNewChat}
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
-            >
-              Start new chat
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="flex items-center justify-end px-3 py-1 border-b border-border">
+        <button
+          type="button"
+          onClick={handleStartNewChat}
+          disabled={Boolean(streamingContent)}
+          className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+          title="New chat"
+        >
+          New chat
+        </button>
+      </div>
       <div className="flex-1 min-h-0">
         <ChatContainer
           messages={messages}

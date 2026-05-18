@@ -1,5 +1,5 @@
 import type { ChatMessage as ChatMessageContent } from "@play-ai/ai/core/types";
-import { Message, MessageResponse } from "~/components/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "~/components/ai-elements/message";
 
 interface ChatMessageProps {
   message: ChatMessageContent;
@@ -8,7 +8,11 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <Message from={message.role}>
-      <MessageResponse>{message.content}</MessageResponse>
+      {message.role === "user" ? (
+        <MessageContent>{message.content}</MessageContent>
+      ) : (
+        <MessageResponse>{message.content}</MessageResponse>
+      )}
     </Message>
   );
 }
