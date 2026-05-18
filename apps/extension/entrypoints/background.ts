@@ -2,7 +2,8 @@ import { createMessageHandler, setupPortHandlers } from "~/background/messages";
 import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
 
 export default defineBackground({
-  main() {
+  async main() {
+    await setupStreamingCleanup();
     setupInstall();
     setupMessaging();
     setupPorts();
@@ -27,6 +28,35 @@ function getDevEnvConfig(): AppConfig | null {
     baseUrl,
     model,
   };
+}
+
+async function setupStreamingCleanup() {
+  const { streamingMessages } = (await browser.storage.local.get(["streamingMessages"])) as {
+    streamingMessages?: Record<string, string>;
+  };
+
+  if (streamingMessages && Object.keys(streamingMessages).length > 0) {
+    const { conversations } = (await browser.storage.local.get(["conversations"])) as {
+      conversations?: Record<string, any>;
+    };
+
+    const updatedConversations = { ...conversations };
+    for (const conversationId of Object.keys(streamingMessages)) {
+      if (updatedConversations[conversationId]) {
+        updatedConversations[conversationId].messages.push({
+          id: Math.random().toString(36).substr(2, 9),
+          role: "assistant",
+          content: "Response interrupted — the background process was restarted.",
+          timestamp: Date.now(),
+        });
+      }
+    }
+
+    await browser.storage.local.set({
+      conversations: updatedConversations,
+      streamingMessages: {},
+    });
+  }
 }
 
 function setupInstall() {
