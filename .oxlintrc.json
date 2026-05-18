@@ -6,9 +6,12 @@
     "oxc"
   ],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "perf": "warn"
   },
-  "rules": {},
+  "rules": {
+    "no-unused-vars": "off"
+  },
   "env": {
     "builtin": true
   }

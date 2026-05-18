@@ -52,9 +52,9 @@ const warnOnError = ({ stdout, stderr }: $.ShellError): string | null => {
 
 const stages: Stage[] = [
   { display: "Types", cmd: "check" },
-  //   { display: "Lint", cmd: "lint", onError: warnOnError },
-  //   { display: "Format", cmd: "format" },
-  //   { display: "Test", cmd: "test" },
+  { display: "Lint", cmd: "lint", onError: warnOnError },
+  { display: "Format", cmd: "format" },
+  { display: "Test", cmd: "test" },
 ];
 
 const getPackageName = async (cwdValue: string) => {
