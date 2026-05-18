@@ -24,6 +24,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "~/components/ai-elements/prompt-input";
+import { MessageResponse } from "~/components/ai-elements/message";
 import { ChatMessage } from "./chat-message";
 import { ChatSuggestions } from "./chat-suggestions";
 
@@ -61,7 +62,6 @@ export function ChatContainerComponent({
   onModelChange,
   onFetchModels,
 }: ChatContainerProps) {
-  const [input, setInput] = useState("");
   const [models, setModels] = useState<string[]>([]);
   const [selectorOpen, { open: openSelector, close: closeSelector }] = useDisclosure(false);
 
@@ -84,7 +84,7 @@ export function ChatContainerComponent({
 
   // Deduplicate: filter out optimistic messages when real ones arrive
   const filteredOptimistics = optimisticMessages.filter(
-    (om) => !messages.some((m) => m.content === om.content && m.role === om.role)
+    (om) => !messages.some((m) => m.content === om.content && m.role === om.role),
   );
   const allMessages = [...filteredOptimistics, ...messages];
 
@@ -135,11 +135,9 @@ export function ChatContainerComponent({
             <ChatMessage key={msg.id} message={msg} />
           ))}
           {streamingContent && (
-            <div className="p-3 rounded-lg bg-muted">
-              <div className="text-sm text-foreground">
-                {streamingContent}
-                <span className="inline-block ml-1 w-2 h-4 bg-foreground animate-pulse" />
-              </div>
+            <div className="p-3 rounded-lg bg-muted text-sm">
+              <MessageResponse isAnimating>{streamingContent}</MessageResponse>
+              <span className="inline-block ml-1 w-2 h-4 bg-foreground animate-pulse" />
             </div>
           )}
         </div>
@@ -152,15 +150,9 @@ export function ChatContainerComponent({
         )}
 
         {/* Prompt bar using PromptInput */}
-        <PromptInput
-          onSubmit={handlePromptSubmit}
-          className="flex flex-col gap-2"
-        >
+        <PromptInput onSubmit={handlePromptSubmit} className="flex flex-col gap-2">
           <PromptInputBody>
-            <PromptInputTextarea
-              placeholder="Ask anything..."
-              disabled={isStreaming}
-            />
+            <PromptInputTextarea placeholder="Ask anything..." disabled={isStreaming} />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
