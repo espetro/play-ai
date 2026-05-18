@@ -97,3 +97,32 @@ export const $messages = storage.defineItem<Record<string, ChatMessage[]>>("loca
 export const $config = storage.defineItem<AppConfig | null>("local:config", {
   fallback: null,
 });
+
+export interface Conversation {
+  id: string;
+  videoId: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const $conversations = storage.defineItem<Record<string, Conversation>>(
+  "local:conversations",
+  {
+    fallback: {},
+  },
+);
+
+export const $activeConversationId = storage.defineItem<string | null>(
+  "local:activeConversationId",
+  {
+    fallback: null,
+  },
+);
+
+export const $streamingMessages = storage.defineItem<Record<string, string>>(
+  "local:streamingMessages",
+  {
+    fallback: {},
+  },
+);
