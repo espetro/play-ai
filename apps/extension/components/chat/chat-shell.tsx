@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect, useRef } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { ChatMessage, type Message } from "./chat-message";
 import { ChatInput } from "./chat-input";
@@ -10,9 +10,9 @@ interface ChatShellProps {
 }
 
 export function ChatShell({ messages, onSendMessage, isLoading }: ChatShellProps) {
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
