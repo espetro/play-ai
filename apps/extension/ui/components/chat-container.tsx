@@ -19,6 +19,7 @@ import {
   ModelSelectorLogo,
 } from "~/components/ai-elements/model-selector";
 import { ChatMessage } from "./chat-message";
+import { ChatSuggestions } from "./chat-suggestions";
 
 interface ChatContainerProps {
   messages: ChatMessageType[];
@@ -80,6 +81,23 @@ export function ChatContainerComponent({
     }
   };
 
+  const handleSuggestionClick = async (content: string) => {
+    if (isStreaming) return;
+    const optimisticId = `optimistic-${Date.now()}-${Math.random()}`;
+    const optimisticMessage: ChatMessageType = {
+      id: optimisticId,
+      role: "user",
+      content,
+      timestamp: Date.now(),
+    };
+    onAddOptimisticMessage?.(optimisticMessage);
+    try {
+      await onSendMessage(content, optimisticId);
+    } catch {
+      onRemoveOptimisticMessage?.(optimisticId);
+    }
+  };
+
   // Deduplicate: filter out optimistic messages when real ones arrive
   const filteredOptimistics = optimisticMessages.filter(
     (om) => !messages.some((m) => m.content === om.content && m.role === om.role)
@@ -109,9 +127,7 @@ export function ChatContainerComponent({
     <div className="flex h-full flex-col gap-4">
       <ScrollArea className="flex-1 space-y-3 p-4">
         {allMessages.length === 0 && !streamingContent ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            Ask anything. Open a YouTube video to chat about it.
-          </div>
+          <ChatSuggestions onSuggestionClick={handleSuggestionClick} />
         ) : (
           <div className="space-y-3">
               {allMessages.map((msg) => (
@@ -184,3 +200,5 @@ export function ChatContainerComponent({
 }
 
 export const ChatContainer = React.memo(ChatContainerComponent);
+
+export default ChatContainer;
