@@ -575,3 +575,71 @@ for await (const textPart of textStream) {
 - **Only supports chat**; no transcript fetch yet
 - **No rate limiting** or request batching (each message calls the provider)
 - **Chrome-only APIs** may require polyfills for Firefox
+
+## Release Workflow
+
+This project uses [Changesets](https://github.com/changesets/changesets) for unified versioning across all packages and GitHub Actions for automated builds.
+
+### Versioning Strategy
+
+All packages in the monorepo are versioned together using Changesets' fixed versioning:
+- `play-ai-extension` (browser extension)
+- `@play-ai/ai` (shared AI package)
+
+When any package bumps, all packages in the group bump to the same version.
+
+### Release Process
+
+**1. Create a changeset** (during feature development):
+
+```bash
+bun run changeset
+```
+
+This creates a markdown file in `.changeset/` describing the change. Select the affected packages and choose bump type:
+- **patch** - Bug fixes
+- **minor** - New features (this project uses minor for all releases)
+- **major** - Breaking changes
+
+**2. Version bump** (when ready to release):
+
+```bash
+bun run version
+```
+
+This:
+- Consumes all changeset files
+- Bumps `package.json` versions for all packages
+- Updates `CHANGELOG.md` files
+- Deletes the consumed changeset files
+- Runs `bun install --lockfile-only` to update lockfile
+
+**3. Commit and tag**:
+
+```bash
+git add .
+git commit -m "chore: release v0.1.0"
+git tag v0.1.0
+git push origin main
+git push origin v0.1.0
+```
+
+**4. CI builds and creates GitHub Release**:
+
+The `.github/workflows/release.yml` workflow:
+- Triggers on `v*` tag push
+- Builds extension for **Chrome**, **Firefox**, and **Edge** in parallel
+- Creates zip artifacts: `play-ai-extension-{version}-{browser}.zip`
+- Creates GitHub Release with all artifacts attached
+
+### Adding Store Publishing
+
+The workflow currently only creates GitHub Releases. To add publishing to browser stores:
+
+1. **Chrome Web Store**: Add secrets (`CHROME_EXTENSION_ID`, `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECRET`, `CHROME_REFRESH_TOKEN`) and add `wxt submit --chrome-zip ...` to the workflow
+
+2. **Firefox AMO**: Add secrets (`FIREFOX_EXTENSION_ID`, `FIREFOX_JWT_ISSUER`, `FIREFOX_JWT_SECRET`) and add `wxt submit --firefox-zip ...` to the workflow
+
+3. **Edge Add-ons**: Add secrets (`EDGE_PRODUCT_ID`, `EDGE_CLIENT_ID`, `EDGE_API_KEY`) and add `wxt submit --edge-zip ...` to the workflow
+
+Run `wxt submit init` locally to interactively generate credentials.
