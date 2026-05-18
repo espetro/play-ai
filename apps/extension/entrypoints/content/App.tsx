@@ -74,19 +74,16 @@ export default function App() {
       }
       let tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
       if (!tracks?.length) {
-        // SPA fallback: fetch watch page HTML and extract ytInitialPlayerResponse
-        try {
-          const html = await fetch(`https://www.youtube.com/watch?v=${currentVideoId}`).then((r) =>
-            r.text(),
-          );
-          const YT_PLAYER_RE = /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+|<\/script)/;
-          const match = html.match(YT_PLAYER_RE);
-          if (match) {
-            const freshPlayer: YouTubePlayerResponse = JSON.parse(match[1]);
-            tracks = freshPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? null;
+        // SPA fallback: poll for ytInitialPlayerResponse to be populated
+        let elapsed = 0;
+        while (elapsed < 3000) {
+          await new Promise<void>((r) => setTimeout(r, 200));
+          elapsed += 200;
+          const fresh = window.ytInitialPlayerResponse;
+          if (fresh?.videoDetails?.videoId === currentVideoId) {
+            tracks = fresh?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? null;
+            if (tracks?.length) break;
           }
-        } catch {
-          return null;
         }
         if (!tracks?.length) return null;
       }

@@ -57,19 +57,19 @@ export default function Chat() {
 
   const handleSendMessage = async (content: string, optimisticId: string) => {
     try {
-      if (!activeConversationId && currentTabVideoId) {
+      if (!activeConversationId) {
+        const videoId = currentTabVideoId ?? "_default";
         const createRes = await sendMessage<BackgroundResponse>({
           type: "CREATE_CONVERSATION",
-          payload: { videoId: currentTabVideoId },
+          payload: { videoId },
         });
         if (createRes?.type === "CONVERSATION_CREATED") {
-          const newConversationId = createRes.payload.conversationId;
           await sendMessage({
             type: "SEND_MESSAGE",
-            payload: { conversationId: newConversationId, content },
+            payload: { conversationId: createRes.payload.conversationId, content },
           });
         }
-      } else if (activeConversationId) {
+      } else {
         await sendMessage({
           type: "SEND_MESSAGE",
           payload: { conversationId: activeConversationId, content },

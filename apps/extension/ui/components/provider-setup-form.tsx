@@ -82,8 +82,8 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
       return;
     }
 
-    if (!apiKey) {
-      setErrorMessage("API Key is required");
+    if (provider === "anthropic" && !apiKey) {
+      setErrorMessage("API Key is required for Anthropic");
       return;
     }
 
@@ -133,7 +133,10 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
     }
   };
 
-  const isTestDisabled = !baseUrlField.input || connectionStatus === "connecting";
+  const isTestDisabled =
+    !baseUrlField.input ||
+    connectionStatus === "connecting" ||
+    (providerField.input === "anthropic" && !apiKeyField.input);
   const isSaveDisabled = connectionStatus !== "connected" || form.isSubmitting;
 
   return (

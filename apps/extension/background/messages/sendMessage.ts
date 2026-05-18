@@ -1,7 +1,7 @@
 import { streamText, dynamicTool, stepCountIs } from "ai";
 import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
-import { buildProvider } from "@play-ai/ai";
+import { buildLanguageModel } from "@play-ai/ai";
 import type {
   BackgroundMessage,
   BackgroundResponse,
@@ -77,13 +77,18 @@ async function flushStreamingMessage(conversationId: string, content: string) {
 
 export async function sendMessageHandler(message: SendMessageMessage): Promise<BackgroundResponse> {
   const { conversationId, content } = message.payload;
-  const { conversations, config } = (await browser.storage.local.get([
+  const { conversations, configs, activeConfigId } = (await browser.storage.local.get([
     "conversations",
-    "config",
+    "configs",
+    "activeConfigId",
   ])) as {
     conversations?: Record<string, Conversation>;
-    config?: any;
+    configs?: any[];
+    activeConfigId?: string | null;
   };
+
+  const configList = configs ?? [];
+  const config = activeConfigId ? configList.find((c) => c.id === activeConfigId) : null;
 
   if (!config) {
     return { type: "ERROR", payload: { message: "No config set" } };
@@ -124,9 +129,6 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
   };
   await browser.storage.local.set({ conversations: updatedConversations });
 
-  const provider = buildProvider(config);
-  const modelId = config.model;
-
   const assistantMessageId = Math.random().toString(36).substr(2, 9);
   const assistantMessage: ChatMessage = {
     id: assistantMessageId,
@@ -150,7 +152,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
   try {
     const stream = await streamText({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model: provider.languageModel(modelId),
+      model: buildLanguageModel(config),
       messages: [
         ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
         { role: "user", content },

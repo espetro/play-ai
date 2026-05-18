@@ -39,14 +39,9 @@ function watchForAnchor(ui: any) {
   }
 
   const anchor = findAnchor();
-  const observerTarget = anchor || document.body;
+  const observeTarget = anchor || document.body;
 
-  // Narrowed scope: if anchor exists, observe it directly;
-  // otherwise fall back to #secondary or body as the container
-  const observeTarget =
-    document.querySelector("#secondary") ||
-    document.querySelector("ytd-watch-flexy #related") ||
-    document.body;
+  if (!observeTarget) return;
 
   let rafId: number | null = null;
 

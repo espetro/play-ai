@@ -2,46 +2,54 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { getConfig, type AppConfig } from "~/lib/storage";
+import { $configs, $activeConfigId, type AppConfig } from "~/lib/storage";
+import { useStorageItem } from "~/ui/hooks/useStorageItem";
 import { sendMessage } from "~/lib/messaging";
 import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
 
 export default function Settings() {
-  const [config, setConfig] = useState<AppConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const configs = useStorageItem($configs, []);
+  const activeConfigId = useStorageItem($activeConfigId, null);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
 
   useEffect(() => {
-    getConfig().then((cfg) => {
-      setConfig(cfg);
-      setIsLoading(false);
-      setFormOpen(cfg === null);
-    });
-  }, []);
+    if (configs.length === 0) {
+      setFormOpen(true);
+    }
+  }, [configs.length]);
 
   const handleSave = async (newConfig: AppConfig) => {
     await sendMessage({ type: "SET_CONFIG", payload: newConfig });
-    await getConfig().then((cfg) => {
-      setConfig(cfg);
-      setFormOpen(false);
-    });
+    setFormOpen(false);
+    setEditingConfigId(null);
   };
 
   const handleCancel = () => {
-    if (config === null) {
-      return;
-    }
     setFormOpen(false);
+    setEditingConfigId(null);
   };
 
-  if (isLoading) {
-    return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>;
-  }
+  const handleSelectActive = async (configId: string) => {
+    await browser.storage.local.set({ activeConfigId: configId });
+  };
+
+  const handleDelete = async (configId: string) => {
+    const updated = configs.filter((c) => c.id !== configId);
+    await browser.storage.local.set({ configs: updated });
+    if (activeConfigId === configId && updated.length > 0) {
+      await browser.storage.local.set({ activeConfigId: updated[0].id });
+    } else if (updated.length === 0) {
+      await browser.storage.local.set({ activeConfigId: null });
+    }
+  };
 
   const maskApiKey = (key: string) => {
     if (key.length <= 8) return "••••••••";
     return key.slice(0, 5) + "••••••••";
   };
+
+  const editingConfig = editingConfigId ? configs.find((c) => c.id === editingConfigId) : null;
 
   return (
     <div className="p-4 space-y-4">
@@ -49,8 +57,20 @@ export default function Settings() {
         <h2 className="text-lg font-semibold">Providers</h2>
       </div>
 
-      {config && (
-        <Card>
+      {configs.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground mb-4">No providers configured</p>
+        </div>
+      )}
+
+      {configs.map((config) => (
+        <Card
+          key={config.id}
+          className={`cursor-pointer transition-colors ${
+            activeConfigId === config.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+          }`}
+          onClick={() => handleSelectActive(config.id)}
+        >
           <CardContent className="p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div className="space-y-2 flex-1">
@@ -58,6 +78,9 @@ export default function Settings() {
                   <Badge variant="secondary" className="text-xs">
                     {config.provider === "anthropic" ? "Anthropic" : "OpenAI-compat"}
                   </Badge>
+                  {activeConfigId === config.id && (
+                    <Badge className="text-xs">Active</Badge>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{config.model}</p>
@@ -66,17 +89,33 @@ export default function Settings() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFormOpen(!formOpen)}
-                className="text-xs h-8"
-              >
-                {formOpen ? "Cancel" : "Edit"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingConfigId(config.id);
+                  }}
+                  className="text-xs h-8"
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(config.id);
+                  }}
+                  className="text-xs h-8 text-destructive hover:text-destructive"
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
 
-            {formOpen && (
+            {editingConfig?.id === config.id && (
               <div className="mt-4 pt-4 border-t">
                 <ProviderSetupForm
                   initialConfig={config}
@@ -87,29 +126,25 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+      ))}
+
+      {formOpen && (
+        <Card>
+          <CardContent className="p-4">
+            <ProviderSetupForm onSave={handleSave} onCancel={handleCancel} />
+          </CardContent>
+        </Card>
       )}
 
-      {!config && (
-        <div className="text-center py-8">
-          <p className="text-sm text-muted-foreground mb-4">No providers configured</p>
-        </div>
-      )}
-
-      {config && !formOpen && (
+      {!formOpen && (
         <Button
           variant="outline"
           size="sm"
           onClick={() => setFormOpen(true)}
           className="w-full text-xs h-8"
         >
-          + Configure a provider
+          + Add provider
         </Button>
-      )}
-
-      {!config && (
-        <div className="pt-4">
-          <ProviderSetupForm onSave={handleSave} onCancel={handleCancel} />
-        </div>
       )}
     </div>
   );

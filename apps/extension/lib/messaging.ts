@@ -3,12 +3,14 @@ import type { AppConfig, ExtensionState, TranscriptLine } from "@play-ai/ai/core
 export type MessageType =
   | { type: "GET_STATE" }
   | { type: "SET_CONFIG"; payload: AppConfig }
-  | { type: "SEND_MESSAGE"; payload: { videoId: string; content: string } }
-  | { type: "CLEAR_CHAT"; payload: { videoId: string } }
+  | { type: "SEND_MESSAGE"; payload: { conversationId: string; content: string } }
+  | { type: "CREATE_CONVERSATION"; payload: { videoId: string } }
+  | { type: "DELETE_CONVERSATION"; payload: { conversationId: string } }
+  | { type: "SET_ACTIVE_CONVERSATION"; payload: { conversationId: string | null } }
   | { type: "STATE_UPDATE"; patch: Partial<ExtensionState> }
   | {
       type: "TEST_CONNECTION";
-      payload: { provider: "anthropic" | "openai"; baseUrl?: string; apiKey: string };
+      payload: { provider: "anthropic" | "openai"; baseUrl?: string; apiKey?: string };
     }
   | { type: "GET_MODELS" }
   | { type: "FETCH_TRANSCRIPT" }

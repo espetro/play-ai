@@ -1,1 +1,1 @@
-export { buildProvider, fetchModels } from "./api/providers";
+export { buildProvider, buildLanguageModel, fetchModels } from "./api/providers";

@@ -1,6 +1,6 @@
 import React from "react";
+import { ScrollArea } from "~/components/ui/scroll-area";
 import {
-  Suggestions,
   Suggestion,
 } from "~/components/ai-elements/suggestion";
 import { DEFAULT_SUGGESTIONS } from "~/ui/constants/suggestions";
@@ -11,16 +11,13 @@ interface ChatSuggestionsProps {
 
 function ChatSuggestionsComponent({ onSuggestionClick }: ChatSuggestionsProps) {
   return (
-    <div className="flex flex-col items-center gap-4 py-8">
-      <p className="text-sm text-muted-foreground">
-        Ask anything. Open a YouTube video to chat about it.
-      </p>
-      <Suggestions>
+    <ScrollArea orientation="horizontal" className="w-full">
+      <div className="flex gap-2 pb-2">
         {DEFAULT_SUGGESTIONS.map((s) => (
           <Suggestion key={s} suggestion={s} onClick={onSuggestionClick} />
         ))}
-      </Suggestions>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 

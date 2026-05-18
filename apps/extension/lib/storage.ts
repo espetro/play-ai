@@ -126,3 +126,19 @@ export const $streamingMessages = storage.defineItem<Record<string, string>>(
     fallback: {},
   },
 );
+
+export const $configs = storage.defineItem<AppConfig[]>("local:configs", {
+  fallback: [],
+});
+
+export const $activeConfigId = storage.defineItem<string | null>("local:activeConfigId", {
+  fallback: null,
+});
+
+export async function getActiveConfig(): Promise<AppConfig | null> {
+  const configs = await browser.storage.local.get(["configs", "activeConfigId"]);
+  const configList = (configs.configs as AppConfig[] | undefined) ?? [];
+  const activeId = (configs.activeConfigId as string | null | undefined) ?? null;
+  if (!activeId) return null;
+  return configList.find((c) => c.id === activeId) ?? null;
+}

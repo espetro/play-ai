@@ -8,6 +8,7 @@ export interface ChatMessage {
 }
 
 export interface AppConfig {
+  id: string;
   provider: ProviderType;
   apiKey: string;
   baseUrl?: string;
