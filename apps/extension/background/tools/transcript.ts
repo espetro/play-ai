@@ -1,4 +1,4 @@
-import { dynamicTool } from "ai";
+import { tool } from "ai";
 import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
 import type { TranscriptLine } from "@play-ai/ai/core/types";
@@ -24,7 +24,7 @@ function formatForPrompt(lines: TranscriptLine[]): string {
 }
 
 export function createTranscriptTool(videoId: string) {
-  return dynamicTool({
+  return tool({
     description:
       "Fetches the full transcript/subtitles of the current YouTube video. Call this whenever the user asks about video content, what was said, specific moments, quotes, timestamps, or anything that requires knowing what the video contains.",
     inputSchema: valibotSchema(v.object({})),
@@ -44,7 +44,7 @@ export function createTranscriptTool(videoId: string) {
       const tab = tabs[0];
       if (!tab?.id) {
         logger.warn("No tab found for video {videoId}", { videoId });
-        return "YouTube video tab not found. Make sure the video tab is still open.";
+        throw new Error("YouTube video tab not found. Make sure the video tab is still open.");
       }
       try {
         const response = await browser.tabs.sendMessage<TranscriptResponse>(tab.id!, {
@@ -52,7 +52,7 @@ export function createTranscriptTool(videoId: string) {
         });
         if (!response?.available || !response.lines?.length) {
           logger.warn("No transcript available in response for video {videoId}", { videoId });
-          return "No transcript available for this video. It may not have subtitles enabled.";
+          throw new Error("No transcript available for this video. It may not have subtitles enabled.");
         }
         await setTranscriptCache(videoId, response.lines);
         logger.debug("Cached transcript for video {videoId}, lines={count}", {
@@ -62,17 +62,9 @@ export function createTranscriptTool(videoId: string) {
         return formatForPrompt(response.lines);
       } catch (err) {
         logger.error("tabs.sendMessage to content script failed: {error}", { error: err });
-        return "Could not reach the video tab to fetch transcript.";
+        throw new Error("Could not reach the video tab to fetch transcript.");
       }
     },
-    toModelOutput: ({ output }: { output: unknown }) => {
-      if (typeof output === "string") return { type: "text" as const, value: output };
-      if ("error" in (output as object))
-        return {
-          type: "text" as const,
-          value: (output as { error: string }).error,
-        };
-      return { type: "text" as const, value: JSON.stringify(output) };
-    },
+
   });
 }

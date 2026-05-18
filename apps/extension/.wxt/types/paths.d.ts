@@ -6,9 +6,10 @@ declare module "wxt/browser" {
     | ""
     | "/"
     | "/background.js"
+    | "/consent.js"
     | "/content-scripts/content.js"
-    | "/content-scripts/web-search.js"
     | "/options.html"
+    | "/scrape-page.js"
     | "/sidepanel.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>
   export interface WxtRuntime {

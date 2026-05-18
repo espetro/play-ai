@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
-import { fetchYouTubeTranscript, type CaptionTrack } from "~/lib/youtube-transcript";
+import { fetchYouTubeTranscript, fetchCaptionTracksFromHtml, type CaptionTrack } from "~/lib/youtube-transcript";
 import { addAsyncMessageHandler, sendMessage } from "~/lib/messaging";
 import { $videoId } from "~/lib/storage";
 import type { ChatMessage } from "~/lib/storage";
@@ -85,7 +85,6 @@ export default function App() {
       if (!tracks?.length) {
         // SPA fallback: poll for ytInitialPlayerResponse to be populated
         let elapsed = 0;
-        const playerPopulated = !!window.ytInitialPlayerResponse?.videoDetails?.videoId;
         while (elapsed < 3000) {
           await new Promise<void>((r) => setTimeout(r, 200));
           elapsed += 200;
@@ -96,9 +95,17 @@ export default function App() {
           }
         }
         if (!tracks?.length) {
+          logger.debug("Poll timeout, falling back to HTML fetch for video {videoId}", {
+            videoId: currentVideoId,
+          });
+          const htmlTracks = await fetchCaptionTracksFromHtml(window.location.href);
+          if (htmlTracks?.length) {
+            logger.debug("Found {count} tracks via HTML fallback", { count: htmlTracks.length });
+            return htmlTracks;
+          }
           logger.warn(
-            "Poll timeout: no caption tracks found for video {videoId}, playerPopulated={playerPopulated}",
-            { videoId: currentVideoId, playerPopulated },
+            "No caption tracks found for video {videoId} after HTML fallback",
+            { videoId: currentVideoId },
           );
           return null;
         }
