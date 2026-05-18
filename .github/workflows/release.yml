@@ -26,7 +26,10 @@ jobs:
 
       - name: Build & zip extension
         working-directory: apps/extension
-        run: bunx wxt zip -b ${{ matrix.browser }}
+        run: bunx wxt zip -b ${{ matrix.browser }} --level verbose
+
+      - name: Debug output
+        run: ls -la apps/extension/.output/ && find apps/extension/.output -name "*.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
