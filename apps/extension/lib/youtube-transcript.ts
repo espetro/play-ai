@@ -88,6 +88,160 @@ function extractApiKeyFromHtml(): string | null {
   return null;
 }
 
+/**
+ * Finds the start index of a JSON object assignment in raw HTML for the given key.
+ * Matches: window["key"] = {, window.key = {, var key = {, key = {
+ */
+function findAssignmentStart(html: string, key: string): number {
+  const patterns = [
+    new RegExp(`window\\["${key}"\\]\\s*=\\s*\\{`),
+    new RegExp(`window\\.${key}\\s*=\\s*\\{`),
+    new RegExp(`var\\s+${key}\\s*=\\s*\\{`),
+    new RegExp(`(?<!\\w)${key}\\s*=\\s*\\{`),
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.index !== undefined) {
+      return match.index + match[0].lastIndexOf("{");
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Reads a balanced JSON object/array starting from the given index.
+ * Tracks brace and bracket depth, and respects string/escape sequences.
+ */
+function readBalancedObject(html: string, start: number): string {
+  let depth = 0;
+  let inString = false;
+  let stringChar = "";
+  let escaped = false;
+
+  for (let i = start; i < html.length; i++) {
+    const char = html[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && inString) {
+      escaped = true;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === '"' || char === "'") {
+        inString = true;
+        stringChar = char;
+      } else if (char === "{") {
+        depth++;
+      } else if (char === "}") {
+        depth--;
+        if (depth === 0) {
+          return html.slice(start, i + 1);
+        }
+      } else if (char === "[") {
+        depth++;
+      } else if (char === "]") {
+        depth--;
+        if (depth === 0) {
+          return html.slice(start, i + 1);
+        }
+      }
+    } else {
+      if (char === stringChar) {
+        inString = false;
+        stringChar = "";
+      }
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Extracts a JSON object/array value from raw YouTube HTML for the given key.
+ * Used as a fallback when window[key] is absent or stale (SPA navigation).
+ */
+function extractJsonBlob(html: string, key: string): unknown {
+  const start = findAssignmentStart(html, key);
+  if (start === -1) {
+    return null;
+  }
+
+  const slice = readBalancedObject(html, start);
+  if (!slice) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(slice);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetches the current YouTube page HTML, parses ytInitialPlayerResponse from it,
+ * and returns sorted caption tracks. Used as fallback when window object is stale.
+ */
+export async function fetchCaptionTracksFromHtml(url: string): Promise<CaptionTrack[] | null> {
+  try {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) {
+      logger.warn("HTML fetch failed: status={status}", { status: response.status });
+      return null;
+    }
+
+    const html = await response.text();
+    const playerResponse = extractJsonBlob(html, "ytInitialPlayerResponse") as
+      | YouTubePlayerResponse
+      | null;
+
+    if (!playerResponse) {
+      logger.debug("No ytInitialPlayerResponse found in HTML");
+      return null;
+    }
+
+    const tracks: CaptionTrack[] =
+      playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+
+    if (!tracks.length) {
+      logger.debug("No caption tracks in ytInitialPlayerResponse from HTML");
+      return null;
+    }
+
+    const sorted = [...tracks].sort((a, b) => {
+      const aIsAsr = a.kind === "asr" ? 1 : 0;
+      const bIsAsr = b.kind === "asr" ? 1 : 0;
+      if (aIsAsr !== bIsAsr) return aIsAsr - bIsAsr;
+      return a.languageCode === "en" ? -1 : b.languageCode === "en" ? 1 : 0;
+    });
+
+    logger.debug("Found {count} caption tracks from HTML for {url}", {
+      count: sorted.length,
+      url,
+    });
+    return sorted;
+  } catch (err) {
+    logger.warn("fetchCaptionTracksFromHtml failed: {error}", { error: err });
+    return null;
+  }
+}
+
+interface YouTubePlayerResponse {
+  videoDetails?: { videoId?: string };
+  captions?: {
+    playerCaptionsTracklistRenderer?: {
+      captionTracks?: CaptionTrack[];
+    };
+  };
+}
+
 async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | null> {
   logger.debug("Fetching transcript via InnerTube API for video {videoId}", { videoId });
   try {
