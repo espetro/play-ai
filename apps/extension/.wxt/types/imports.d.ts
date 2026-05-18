@@ -2,6 +2,7 @@
 export {}
 declare global {
   const ContentScriptContext: typeof import('wxt/utils/content-script-context').ContentScriptContext
+  const ErrorBoundary: typeof import('/Users/joaquin.terrasamoya/Documents/prjcts/_own/play-ai/apps/extension/components/error-boundary').ErrorBoundary
   const InvalidMatchPattern: typeof import('wxt/utils/match-patterns').InvalidMatchPattern
   const MatchPattern: typeof import('wxt/utils/match-patterns').MatchPattern
   const browser: typeof import('wxt/browser').browser
@@ -48,4 +49,7 @@ declare global {
   // @ts-ignore
   export type { ScriptPublicPath, InjectScriptOptions } from 'wxt/utils/inject-script'
   import('wxt/utils/inject-script')
+  // @ts-ignore
+  export type { ErrorBoundary } from '/Users/joaquin.terrasamoya/Documents/prjcts/_own/play-ai/apps/extension/components/error-boundary'
+  import('/Users/joaquin.terrasamoya/Documents/prjcts/_own/play-ai/apps/extension/components/error-boundary')
 }
