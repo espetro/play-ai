@@ -21,10 +21,6 @@ export function useStorageItem<T>(item: WxtStorageItem<T, {}>, fallback: T): T {
         entry.value = newValue ?? fallback;
         onChange();
       });
-      item.getValue().then((v: T | null) => {
-        entry.value = v ?? fallback;
-        onChange();
-      });
       return unwatch;
     },
     [item, entry, fallback],

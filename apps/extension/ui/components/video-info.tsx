@@ -42,7 +42,11 @@ function TranscriptBadge({ status }: { status: TranscriptStatus }) {
   );
 }
 
-export function VideoInfo({ videoId, currentTimestamp = 0, transcriptStatus = "idle" }: VideoInfoProps) {
+export function VideoInfo({
+  videoId,
+  currentTimestamp = 0,
+  transcriptStatus = "idle",
+}: VideoInfoProps) {
   return (
     <div className="flex items-center gap-3 px-4 py-2 text-xs text-muted-foreground border-b border-border">
       <span className="font-medium text-foreground">

@@ -58,7 +58,9 @@ export default function Conversations() {
   if (sorted.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-4 py-8">
-        <p className="text-gray-500 text-center mb-4">No conversations yet. Open a YouTube video to start.</p>
+        <p className="text-gray-500 text-center mb-4">
+          No conversations yet. Open a YouTube video to start.
+        </p>
         {currentTabVideoId && (
           <Button onClick={handleNewConversation} className="gap-2">
             <Plus className="w-4 h-4" />
@@ -97,14 +99,18 @@ export default function Conversations() {
                     <span className="text-xs font-mono bg-gray-200 px-2 py-0.5 rounded flex-shrink-0">
                       {conversation.videoId}
                     </span>
-                    <span className="text-xs text-gray-500">{formatRelativeTime(conversation.updatedAt)}</span>
+                    <span className="text-xs text-gray-500">
+                      {formatRelativeTime(conversation.updatedAt)}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-700 line-clamp-2">
                     {conversation.messages.length === 0
                       ? "No messages"
                       : conversation.messages[conversation.messages.length - 1]?.content || "..."}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">{conversation.messages.length} messages</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {conversation.messages.length} messages
+                  </p>
                 </div>
                 <button
                   onClick={() => handleDelete(conversation.id)}

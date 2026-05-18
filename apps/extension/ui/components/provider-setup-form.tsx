@@ -144,10 +144,7 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
       {/* Provider Selection */}
       <div className="space-y-3">
         <Label>Provider</Label>
-        <Select
-          value={providerField.input ?? "anthropic"}
-          onValueChange={handleProviderChange}
-        >
+        <Select value={providerField.input ?? "anthropic"} onValueChange={handleProviderChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select a provider" />
           </SelectTrigger>
