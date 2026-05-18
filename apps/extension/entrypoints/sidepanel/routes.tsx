@@ -4,6 +4,7 @@ import Root from "./pages/Root";
 import Chat from "./pages/Chat";
 
 const Settings = lazy(() => import("./pages/Settings"));
+const Conversations = lazy(() => import("./pages/Conversations"));
 
 export const rootRoute = createRootRoute({ component: Root });
 
@@ -23,4 +24,14 @@ export const settingsRoute = createRoute({
   ),
 });
 
-export const routeTree = rootRoute.addChildren([chatRoute, settingsRoute]);
+export const conversationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/conversations",
+  component: () => (
+    <Suspense fallback={null}>
+      <Conversations />
+    </Suspense>
+  ),
+});
+
+export const routeTree = rootRoute.addChildren([chatRoute, settingsRoute, conversationsRoute]);
