@@ -1,15 +1,26 @@
 import { useCallback, useSyncExternalStore } from "react";
 import type { WxtStorageItem } from "#imports";
 
-const cache = new WeakMap<WxtStorageItem<any, {}>, { value: any }>();
+interface CacheEntry<T> {
+  value: T;
+  notifiers: Set<() => void>;
+}
 
-function getEntry<T>(item: WxtStorageItem<T, {}>, fallback: T) {
-  let entry = cache.get(item);
+const cache = new WeakMap<WxtStorageItem<any, {}>, CacheEntry<any>>();
+
+function getEntry<T>(item: WxtStorageItem<T, {}>, fallback: T): CacheEntry<T> {
+  let entry = cache.get(item) as CacheEntry<T> | undefined;
   if (!entry) {
-    entry = { value: fallback };
+    entry = { value: fallback, notifiers: new Set() };
     cache.set(item, entry);
+    item.getValue().then((stored) => {
+      if (stored !== null && stored !== undefined) {
+        entry!.value = stored;
+        entry!.notifiers.forEach((n) => n());
+      }
+    });
   }
-  return entry as { value: T };
+  return entry;
 }
 
 export function useStorageItem<T>(item: WxtStorageItem<T, {}>, fallback: T): T {
@@ -17,11 +28,15 @@ export function useStorageItem<T>(item: WxtStorageItem<T, {}>, fallback: T): T {
 
   const subscribe = useCallback(
     (onChange: () => void) => {
+      entry.notifiers.add(onChange);
       const unwatch = item.watch((newValue: T) => {
         entry.value = newValue ?? fallback;
         onChange();
       });
-      return unwatch;
+      return () => {
+        entry.notifiers.delete(onChange);
+        unwatch();
+      };
     },
     [item, entry, fallback],
   );
