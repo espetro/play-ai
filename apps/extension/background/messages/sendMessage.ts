@@ -8,6 +8,7 @@ import type {
   Conversation,
 } from "@play-ai/ai/core/types";
 import { createWebSearchTool } from "~/background/tools/web-search";
+import { createWebScrapeTool } from "~/background/tools/web-scrape";
 import { createTranscriptTool } from "~/background/tools/transcript";
 import {
   type ActiveStream,
@@ -89,9 +90,13 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
   };
   activeStreams.set(conversationId, activeStream);
 
-  const systemPrompt = isVideoContext
-    ? "You are a helpful assistant answering questions about YouTube videos. You have access to a transcript tool — use it proactively whenever the user asks about the video content, what was said, specific moments, quotes, or timestamps. You also have a web search tool for looking up information beyond the video."
-    : "You are a helpful AI assistant with access to web search. You can search the web to look up current information when needed. Use the web search tool when you need up-to-date facts, recent events, or information you're not confident about. Answer the user's questions clearly and concisely.";
+  const GENERAL_AGENT =
+    "You are a helpful AI assistant with access to web search and web scraping tools. Use webSearch to look up current information, recent events, or facts you're not confident about. When a search result looks relevant but you need more detail, use webScrape to read the full page content. Answer the user's questions clearly and concisely.";
+
+  const VIDEO_AGENT =
+    "You are a helpful assistant answering questions about YouTube videos. You have access to a transcript tool — use it proactively whenever the user asks about the video content, what was said, specific moments, quotes, or timestamps. You also have web search and web scraping tools — use webSearch to find information beyond the video, and webScrape to read specific pages in depth when you need more detail than the search snippet provides.";
+
+  const systemPrompt = isVideoContext ? VIDEO_AGENT : GENERAL_AGENT;
 
   try {
     const stream = await streamText({
@@ -104,9 +109,8 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       system: systemPrompt,
       tools: {
         webSearch: createWebSearchTool(),
-        ...(isVideoContext
-          ? { transcript: createTranscriptTool(videoId) }
-          : {}),
+        webScrape: createWebScrapeTool(),
+        ...(isVideoContext ? { transcript: createTranscriptTool(videoId) } : {}),
       },
       stopWhen: stepCountIs(5),
       abortSignal: controller.signal,
@@ -133,7 +137,11 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       ...updatedConversations,
       [conversationId]: {
         ...updatedConversations[conversationId],
-        messages: [...updatedConversations[conversationId].messages, assistantMessage],
+        messages: [
+          //
+          ...(updatedConversations?.[conversationId]?.messages ?? []),
+          assistantMessage,
+        ],
         updatedAt: Date.now(),
       },
     };
@@ -161,7 +169,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       ...updatedConversations,
       [conversationId]: {
         ...updatedConversations[conversationId],
-        messages: [...updatedConversations[conversationId].messages, assistantMessage],
+        messages: [...(updatedConversations?.[conversationId]?.messages ?? []), assistantMessage],
         updatedAt: Date.now(),
       },
     };
