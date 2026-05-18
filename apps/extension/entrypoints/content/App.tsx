@@ -76,17 +76,14 @@ export default function App() {
       if (!tracks?.length) {
         // SPA fallback: fetch watch page HTML and extract ytInitialPlayerResponse
         try {
-          const html = await fetch(
-            `https://www.youtube.com/watch?v=${currentVideoId}`,
-          ).then((r) => r.text());
-          const YT_PLAYER_RE =
-            /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+|<\/script)/;
+          const html = await fetch(`https://www.youtube.com/watch?v=${currentVideoId}`).then((r) =>
+            r.text(),
+          );
+          const YT_PLAYER_RE = /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+|<\/script)/;
           const match = html.match(YT_PLAYER_RE);
           if (match) {
             const freshPlayer: YouTubePlayerResponse = JSON.parse(match[1]);
-            tracks =
-              freshPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks ??
-              null;
+            tracks = freshPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? null;
           }
         } catch {
           return null;
@@ -133,10 +130,7 @@ export default function App() {
           const res = await fetch(track.baseUrl + "&fmt=json3");
           const data = await res.json();
           const lines: TranscriptLine[] = (data.events ?? [])
-            .filter(
-              (e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) =>
-                e.segs,
-            )
+            .filter((e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) => e.segs)
             .map(
               (e: {
                 segs?: Array<{ utf8?: string; tOffsetMs?: number }>;

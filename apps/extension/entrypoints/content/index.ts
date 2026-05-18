@@ -28,21 +28,53 @@ function isWatchPage(): boolean {
 }
 
 function watchForAnchor(ui: any) {
+  if (!isWatchPage()) {
+    return;
+  }
+
+  // Null guard: document.body may not exist yet in edge cases
+  if (!document.body) {
+    console.warn("[play-ai] document.body not available, skipping anchor observation");
+    return;
+  }
+
+  const anchor = findAnchor();
+  const observerTarget = anchor || document.body;
+
+  // Narrowed scope: if anchor exists, observe it directly;
+  // otherwise fall back to #secondary or body as the container
+  const observeTarget =
+    document.querySelector("#secondary") ||
+    document.querySelector("ytd-watch-flexy #related") ||
+    document.body;
+
+  let rafId: number | null = null;
+
   const observer = new MutationObserver(() => {
-    const anchor = findAnchor();
-    if (!anchor && ui) {
-      ui.remove();
-    } else if (anchor && !document.querySelector("#play-ai-root")) {
-      try {
-        ui.mount();
-      } catch {}
-    }
+    if (rafId !== null) return;
+    rafId = requestAnimationFrame(function run() {
+      rafId = null;
+      const currentAnchor = findAnchor();
+      if (!currentAnchor && ui) {
+        ui.remove();
+      } else if (currentAnchor && !document.querySelector("#play-ai-root")) {
+        try {
+          ui.mount();
+        } catch (error) {
+          console.warn("[play-ai]", error);
+        }
+      }
+    });
   });
 
-  observer.observe(document.body, {
+  observer.observe(observeTarget, {
     childList: true,
     subtree: true,
   });
+
+  // Store disconnect on ui so we can clean up via ctx.onInvalidated
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (ui as any)._anchorObserver = observer;
 }
 
 async function renderApp(container: HTMLElement) {
@@ -77,7 +109,9 @@ export default defineContentScript({
     if (isWatchPage()) {
       try {
         ui.mount();
-      } catch {}
+      } catch (error) {
+        console.warn("[play-ai]", error);
+      }
       await updateVideoId();
     }
 
@@ -86,13 +120,20 @@ export default defineContentScript({
       if (isWatchPage()) {
         try {
           ui.mount();
-        } catch {}
+        } catch (error) {
+          console.warn("[play-ai]", error);
+        }
         await updateVideoId();
       }
     });
 
     ctx.onInvalidated(() => {
       cleanup();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const observer = (ui as any)._anchorObserver;
+      if (observer) {
+        observer.disconnect();
+      }
       ui.remove();
     });
 
