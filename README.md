@@ -4,6 +4,8 @@ Transform passive video watching into active learning and exploration through AI
 
 Play AI is a browser extension that lets you chat about YouTube videos using your own AI API credentials. It lives inside YouTube — no tabs, no context switching.
 
+**[Install and get started →](docs/onboarding.md)**
+
 ![Play AI screenshot](docs/assets/screenshot.png)
 
 ## Features
