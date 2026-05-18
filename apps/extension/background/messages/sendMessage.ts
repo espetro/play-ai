@@ -2,8 +2,8 @@ import { streamText, dynamicTool, stepCountIs } from "ai";
 import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
 import { buildProvider } from "@play-ai/ai";
-import type { BackgroundMessage, BackgroundResponse, ChatMessage, Conversation } from "@play-ai/ai/core/types";
-import { storage } from "~/background/storage";
+import type { BackgroundMessage, BackgroundResponse, ChatMessage, Conversation, TranscriptLine } from "@play-ai/ai/core/types";
+import { storage, getTranscriptCache, setTranscriptCache } from "~/background/storage";
 import type { TranscriptResponse } from "~/lib/messaging";
 
 type SendMessageMessage = Extract<BackgroundMessage, { type: "SEND_MESSAGE" }>;
@@ -18,6 +18,21 @@ interface ActiveStream {
 }
 
 const activeStreams = new Map<string, ActiveStream>();
+
+function formatForPrompt(lines: TranscriptLine[]): string {
+  return lines
+    .map((l) => {
+      const s = l.start;
+      const mm = Math.floor(s / 60)
+        .toString()
+        .padStart(2, "0");
+      const ss = Math.floor(s % 60)
+        .toString()
+        .padStart(2, "0");
+      return `[${mm}:${ss}] ${l.text}`;
+    })
+    .join("\n");
+}
 
 async function broadcastStateUpdate() {
   const tabs = await browser.tabs.query({ url: "*://*.youtube.com/*" });
@@ -139,6 +154,12 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
                 "Fetches the full transcript/subtitles of the current YouTube video. Call this whenever the user asks about video content, what was said, specific moments, quotes, timestamps, or anything that requires knowing what the video contains.",
               inputSchema: valibotSchema(v.object({})),
               execute: async () => {
+                // Check cache first
+                const cached = await getTranscriptCache(videoId);
+                if (cached) {
+                  return formatForPrompt(cached);
+                }
+
                 const tabs = await browser.tabs.query({
                   url: `*://*.youtube.com/watch?v=${videoId}*`,
                 });
@@ -153,7 +174,9 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
                   if (!response?.available || !response.lines?.length) {
                     return "No transcript available for this video. It may not have subtitles enabled.";
                   }
-                  return response.lines.join("\n");
+                  // Write to cache for future calls
+                  await setTranscriptCache(videoId, response.lines);
+                  return formatForPrompt(response.lines);
                 } catch {
                   return "Could not reach the video tab to fetch transcript.";
                 }
