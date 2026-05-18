@@ -3,6 +3,7 @@ import { homedir } from "os";
 import { defineConfig } from "wxt";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import reactCompiler from "babel-plugin-react-compiler";
 
 const HOME = homedir();
 
@@ -12,8 +13,7 @@ const CHROMIUM_CANDIDATES = [
   `${HOME}/Applications/Brave.app/Contents/MacOS/Brave Browser`,
 ];
 const chromiumBinary =
-  process.env.BROWSER_EXECUTABLE_PATH ||
-  CHROMIUM_CANDIDATES.find((p) => existsSync(p));
+  process.env.BROWSER_EXECUTABLE_PATH || CHROMIUM_CANDIDATES.find((p) => existsSync(p));
 
 export default defineConfig({
   manifest: (env) => ({
@@ -46,6 +46,13 @@ export default defineConfig({
     // Expose a TCP CDP endpoint so agent-browser can connect via --cdp 9222
     chromiumArgs: ["--remote-debugging-port=9222"],
   },
+  babel: () => ({
+    plugins: [
+      reactCompiler({
+        compilationMode: "annotation",
+      }),
+    ],
+  }),
   vite: () => ({
     plugins: [react(), tailwindcss()],
     resolve: {
