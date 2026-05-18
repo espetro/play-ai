@@ -1,5 +1,7 @@
 import { createMessageHandler, setupPortHandlers } from "~/background/messages";
 import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
+import { createChromeHandler } from "@kstonekuan/trpc-chrome/adapter";
+import { appRouter } from "~/background/router";
 
 export default defineBackground({
   async main() {
@@ -8,6 +10,7 @@ export default defineBackground({
     setupMessaging();
     setupPorts();
     setupYouTubeCookies();
+    setupTrpc();
   },
 });
 
@@ -73,6 +76,9 @@ function setupInstall() {
         browser.tabs.create({ url });
       }
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (browser.sidePanel as any).setPanelBehavior({ openPanelOnActionClick: true });
   });
 }
 
@@ -84,6 +90,10 @@ function setupPorts() {
 
 function setupMessaging() {
   browser.runtime.onMessage.addListener(createMessageHandler());
+}
+
+function setupTrpc() {
+  createChromeHandler({ router: appRouter });
 }
 
 const YOUTUBE_CONSENT_COOKIES = [
