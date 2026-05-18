@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
-import { sendMessage } from "~/lib/messaging";
+import { addAsyncMessageHandler, sendMessage } from "~/lib/messaging";
 import type { ChatMessage } from "~/lib/storage";
 import type { Browser } from "wxt/browser";
 import type { TranscriptLine, TranscriptResponse } from "~/lib/messaging";
@@ -96,68 +96,52 @@ export default function App() {
       });
     };
 
-    const handleCheckTranscript = async (
-      message: { type: string },
-      _sender: Browser.runtime.MessageSender,
-      sendResponse: (r: { available: boolean }) => void,
-    ) => {
-      if (message.type !== "CHECK_TRANSCRIPT") return false;
+    const removeCheckHandler = addAsyncMessageHandler<
+      { type: "CHECK_TRANSCRIPT" },
+      { available: boolean }
+    >("CHECK_TRANSCRIPT", async () => {
       const tracks = await getValidTracks();
-      sendResponse({ available: tracks !== null });
-      return false;
-    };
+      return { available: tracks !== null };
+    });
 
-    const handleFetchTranscript = (
-      message: { type: string },
-      _sender: Browser.runtime.MessageSender,
-      sendResponse: (r: TranscriptResponse) => void,
-    ) => {
-      if (message.type !== "FETCH_TRANSCRIPT") return false;
+    const removeFetchHandler = addAsyncMessageHandler<
+      { type: "FETCH_TRANSCRIPT" },
+      TranscriptResponse
+    >("FETCH_TRANSCRIPT", async () => {
+      const tracks = await getValidTracks();
+      if (!tracks) return { available: false, lines: null };
 
-      (async () => {
-        const tracks = await getValidTracks();
-        if (!tracks) {
-          sendResponse({ available: false, lines: null });
-          return;
-        }
+      const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
+      try {
+        const res = await fetch(track.baseUrl + "&fmt=json3");
+        const data = await res.json();
+        const lines: TranscriptLine[] = (data.events ?? [])
+          .filter((e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) => e.segs)
+          .map(
+            (e: {
+              segs?: Array<{ utf8?: string; tOffsetMs?: number }>;
+              tStartMs?: number;
+              dDurationMs?: number;
+            }) => {
+              const text = (e.segs ?? [])
+                .map((s) => s.utf8 ?? "")
+                .join("")
+                .trim();
+              const start = (e.tStartMs ?? 0) / 1000;
+              const end = start + (e.dDurationMs ?? 0) / 1000;
+              return { start, end, text };
+            },
+          )
+          .filter((r) => r.text.length > 0);
+        return { available: true, lines };
+      } catch {
+        return { available: false, lines: null };
+      }
+    });
 
-        const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
-
-        try {
-          const res = await fetch(track.baseUrl + "&fmt=json3");
-          const data = await res.json();
-          const lines: TranscriptLine[] = (data.events ?? [])
-            .filter((e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) => e.segs)
-            .map(
-              (e: {
-                segs?: Array<{ utf8?: string; tOffsetMs?: number }>;
-                tStartMs?: number;
-                dDurationMs?: number;
-              }) => {
-                const text = (e.segs ?? [])
-                  .map((s) => s.utf8 ?? "")
-                  .join("")
-                  .trim();
-                const start = (e.tStartMs ?? 0) / 1000; // convert ms → seconds
-                const end = start + (e.dDurationMs ?? 0) / 1000;
-                return { start, end, text };
-              },
-            )
-            .filter((r) => r.text.length > 0);
-          sendResponse({ available: true, lines });
-        } catch {
-          sendResponse({ available: false, lines: null });
-        }
-      })();
-
-      return true;
-    };
-
-    browser.runtime.onMessage.addListener(handleCheckTranscript);
-    browser.runtime.onMessage.addListener(handleFetchTranscript);
     return () => {
-      browser.runtime.onMessage.removeListener(handleCheckTranscript);
-      browser.runtime.onMessage.removeListener(handleFetchTranscript);
+      removeCheckHandler();
+      removeFetchHandler();
     };
   }, []);
 

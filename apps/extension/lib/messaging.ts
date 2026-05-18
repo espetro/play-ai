@@ -1,4 +1,7 @@
 import type { AppConfig, ExtensionState, TranscriptLine } from "@play-ai/ai/core/types";
+import type { Browser } from "wxt/browser";
+
+export type { TranscriptLine };
 
 export type MessageType =
   | { type: "GET_STATE" }
@@ -41,3 +44,20 @@ export function sendMessage<T = unknown>(message: MessageType): Promise<T> {
 
 /** @deprecated use {@link browser.runtime.onMessage} directly */
 export const onMessage = browser.runtime.onMessage;
+
+export function addAsyncMessageHandler<TMsg extends { type: string }, TRes>(
+  type: TMsg["type"],
+  handler: (message: TMsg, sender: Browser.runtime.MessageSender) => Promise<TRes>,
+): () => void {
+  const listener = (
+    message: unknown,
+    sender: Browser.runtime.MessageSender,
+    sendResponse: (r: TRes) => void,
+  ): boolean => {
+    if ((message as { type?: string }).type !== type) return false;
+    handler(message as TMsg, sender).then(sendResponse);
+    return true;
+  };
+  browser.runtime.onMessage.addListener(listener);
+  return () => browser.runtime.onMessage.removeListener(listener);
+}
