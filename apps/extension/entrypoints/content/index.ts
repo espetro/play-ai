@@ -2,6 +2,7 @@ import { defineContentScript } from "wxt/utils/define-content-script";
 import { createShadowRootUi } from "wxt/utils/content-script-ui/shadow-root";
 import { createAdapter, detectPlatform } from "@play-ai/ai/core/adapters";
 import { onVideoChange } from "~/lib/youtube";
+import { configureLogger } from "~/lib/logger";
 import "./style.css";
 
 async function updateVideoId() {
@@ -92,6 +93,8 @@ export default defineContentScript({
   matches: ["*://*.youtube.com/*"],
   cssInjectionMode: "ui",
   async main(ctx) {
+    await configureLogger();
+
     const ui = await createShadowRootUi(ctx, {
       name: "play-ai-overlay",
       position: "inline",

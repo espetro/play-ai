@@ -7,6 +7,7 @@ declare module "wxt/browser" {
     | "/"
     | "/background.js"
     | "/content-scripts/content.js"
+    | "/content-scripts/web-search.js"
     | "/options.html"
     | "/sidepanel.html"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>

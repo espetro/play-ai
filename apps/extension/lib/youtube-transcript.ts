@@ -1,4 +1,7 @@
 import type { TranscriptLine } from "~/lib/messaging";
+import { getLogger } from "~/lib/logger";
+
+const logger = getLogger(["content", "youtubeTranscript"]);
 
 export interface CaptionTrack {
   languageCode: string;
@@ -86,6 +89,7 @@ function extractApiKeyFromHtml(): string | null {
 }
 
 async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | null> {
+  logger.debug("Fetching transcript via InnerTube API for video {videoId}", { videoId });
   try {
     // Prefer ytcfg if available; fall back to HTML regex (working extractor approach)
     const apiKey: string | null =
@@ -111,7 +115,7 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
     });
 
     if (!response.ok) {
-      console.error("[transcript] InnerTube HTTP error:", response.status);
+      logger.error("InnerTube HTTP error: status={status}", { status: response.status });
       return null;
     }
 
@@ -119,17 +123,22 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
     const captionTracks =
       data.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
     if (!captionTracks.length) {
-      console.error("[transcript] InnerTube: no caption tracks in response");
+      logger.error("InnerTube: no caption tracks in response");
       return null;
     }
 
     const track = selectBestTrack(captionTracks);
-    if (!track) return null;
+    if (!track) {
+      logger.warn("No suitable caption track selected from {count} available", {
+        count: captionTracks.length,
+      });
+      return null;
+    }
 
     // Fetch raw XML (matches the working extractor approach)
     const captionRes = await fetch(track.baseUrl, { credentials: "same-origin" });
     if (!captionRes.ok) {
-      console.error("[transcript] Caption track fetch failed:", captionRes.status);
+      logger.error("Caption track fetch failed: status={status}", { status: captionRes.status });
       return null;
     }
 
@@ -142,12 +151,17 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
       });
       if (captionResJson.ok) {
         const data = await captionResJson.json();
-        return parseJson3Events(data.events ?? []);
+        const json3Lines = parseJson3Events(data.events ?? []);
+        if (json3Lines.length > 0) {
+          logger.debug("Parsed JSON3 format: {count} lines", { count: json3Lines.length });
+          return json3Lines;
+        }
       }
     }
+    logger.debug("Parsed InnerTube transcript: {count} lines", { count: lines.length });
     return lines;
   } catch (err) {
-    console.error("[transcript] InnerTube exception:", err);
+    logger.error("InnerTube exception: {error}", { error: err });
     return null;
   }
 }
@@ -155,6 +169,7 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
 async function fetchViaTimedText(tracks: CaptionTrack[]): Promise<TranscriptLine[] | null> {
   const track = selectBestTrack(tracks);
   if (!track) {
+    logger.warn("No suitable track selected from {count} tracks", { count: tracks.length });
     return null;
   }
 
@@ -164,10 +179,13 @@ async function fetchViaTimedText(tracks: CaptionTrack[]): Promise<TranscriptLine
     if (res.ok) {
       const data = await res.json();
       const lines = parseJson3Events(data.events ?? []);
-      if (lines.length > 0) return lines;
+      if (lines.length > 0) {
+        logger.debug("Parsed JSON3 via timed text: {count} lines", { count: lines.length });
+        return lines;
+      }
     }
-  } catch {
-    // Fall through to XML
+  } catch (err) {
+    logger.warn("JSON3 fetch failed, falling through to XML: {error}", { error: err });
   }
 
   try {
@@ -175,9 +193,12 @@ async function fetchViaTimedText(tracks: CaptionTrack[]): Promise<TranscriptLine
     const res = await fetch(track.baseUrl);
     if (res.ok) {
       const xml = await res.text();
-      return parseCaptionXml(xml);
+      const lines = parseCaptionXml(xml);
+      logger.debug("Parsed XML via timed text: {count} lines", { count: lines.length });
+      return lines;
     }
-  } catch {
+  } catch (err) {
+    logger.error("Timed text XML fetch failed: {error}", { error: err });
     return null;
   }
 
@@ -188,16 +209,26 @@ export async function fetchYouTubeTranscript(
   videoId: string,
   fallbackTracks?: CaptionTrack[],
 ): Promise<TranscriptLine[] | null> {
+  logger.debug("fetchYouTubeTranscript called for video {videoId}, fallbackTracks={count}", {
+    videoId,
+    count: fallbackTracks?.length ?? 0,
+  });
+
   // Primary: InnerTube API (no POT token needed)
   const innerTubeLines = await fetchViaInnerTube(videoId);
   if (innerTubeLines) {
+    logger.debug("Successfully fetched via InnerTube");
     return innerTubeLines;
   }
 
   // Fallback: direct fetch from tracks
   if (fallbackTracks && fallbackTracks.length > 0) {
+    logger.debug("InnerTube failed, switching to timed text fallback with {count} tracks", {
+      count: fallbackTracks.length,
+    });
     return fetchViaTimedText(fallbackTracks);
   }
 
+  logger.warn("Both InnerTube and timed text approaches exhausted, no transcript available");
   return null;
 }

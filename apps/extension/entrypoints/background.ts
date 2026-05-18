@@ -2,9 +2,12 @@ import { createMessageHandler, setupPortHandlers } from "~/background/messages";
 import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
 import { createChromeHandler } from "@kstonekuan/trpc-chrome/adapter";
 import { appRouter } from "~/background/router";
+import { configureLogger } from "~/lib/logger";
 
 export default defineBackground({
   async main() {
+    await configureLogger();
+
     // Ensure clicking the toolbar button always opens the side panel.
     // Called here (not only in onInstalled) so it applies on every SW restart
     // and on dev reloads that don't bump the version.

@@ -52,14 +52,15 @@ export default function Chat() {
   const isCurrentTab = conversationVideoId === currentTabVideoId;
 
   useEffect(() => {
-    if (!conversationVideoId || conversationVideoId === "_default") {
+    const videoIdToCheck = currentTabVideoId ?? conversationVideoId;
+    if (!videoIdToCheck || videoIdToCheck === "_default") {
       setTranscriptStatus("idle");
       return;
     }
     setTranscriptStatus("checking");
     sendMessage<BackgroundResponse>({
       type: "CHECK_TRANSCRIPT",
-      payload: { videoId: conversationVideoId },
+      payload: { videoId: videoIdToCheck },
     })
       .then((res) => {
         if (res && res.type === "TRANSCRIPT_STATUS") {
@@ -67,7 +68,7 @@ export default function Chat() {
         }
       })
       .catch(() => setTranscriptStatus("unavailable"));
-  }, [conversationVideoId]);
+  }, [conversationVideoId, currentTabVideoId]);
 
   const handleSendMessage = async (content: string, optimisticId: string) => {
     try {

@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
+import { fetchYouTubeTranscript, type CaptionTrack } from "~/lib/youtube-transcript";
 import { addAsyncMessageHandler, sendMessage } from "~/lib/messaging";
+import { $videoId } from "~/lib/storage";
 import type { ChatMessage } from "~/lib/storage";
 import type { Browser } from "wxt/browser";
-import type { TranscriptLine, TranscriptResponse } from "~/lib/messaging";
+import type { TranscriptResponse } from "~/lib/messaging";
+import { getLogger } from "~/lib/logger";
+
+const logger = getLogger(["content", "transcript"]);
 
 interface YouTubePlayerResponse {
   videoDetails?: { videoId?: string };
@@ -17,12 +22,6 @@ interface YouTubePlayerResponse {
       }>;
     };
   };
-}
-
-interface CaptionTrack {
-  languageCode: string;
-  baseUrl: string;
-  kind?: string;
 }
 
 declare global {
@@ -64,18 +63,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const currentVideoId = extractVideoId();
+    $videoId.setValue(extractVideoId());
+    const handleNavigation = () => $videoId.setValue(extractVideoId());
+    window.addEventListener("yt-navigate-finish", handleNavigation);
+    return () => window.removeEventListener("yt-navigate-finish", handleNavigation);
+  }, []);
 
+  useEffect(() => {
     const getValidTracks = async (): Promise<CaptionTrack[] | null> => {
+      const currentVideoId = extractVideoId();
       const player = window.ytInitialPlayerResponse;
       // Guard against SPA navigation race: reject stale player response
       if (player?.videoDetails?.videoId && player.videoDetails.videoId !== currentVideoId) {
+        logger.warn(
+          "SPA race detected: stale player response (playerVideoId={playerVideoId}, currentVideoId={currentVideoId})",
+          { playerVideoId: player.videoDetails.videoId, currentVideoId },
+        );
         return null;
       }
       let tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
       if (!tracks?.length) {
         // SPA fallback: poll for ytInitialPlayerResponse to be populated
         let elapsed = 0;
+        const playerPopulated = !!window.ytInitialPlayerResponse?.videoDetails?.videoId;
         while (elapsed < 3000) {
           await new Promise<void>((r) => setTimeout(r, 200));
           elapsed += 200;
@@ -85,15 +95,26 @@ export default function App() {
             if (tracks?.length) break;
           }
         }
-        if (!tracks?.length) return null;
+        if (!tracks?.length) {
+          logger.warn(
+            "Poll timeout: no caption tracks found for video {videoId}, playerPopulated={playerPopulated}",
+            { videoId: currentVideoId, playerPopulated },
+          );
+          return null;
+        }
       }
       // Prefer manually-created over auto-generated (asr), then English first
-      return [...tracks].sort((a, b) => {
+      const sorted = [...tracks].sort((a, b) => {
         const aIsAsr = a.kind === "asr" ? 1 : 0;
         const bIsAsr = b.kind === "asr" ? 1 : 0;
         if (aIsAsr !== bIsAsr) return aIsAsr - bIsAsr;
         return a.languageCode === "en" ? -1 : b.languageCode === "en" ? 1 : 0;
       });
+      logger.debug("Found {count} caption tracks for video {videoId}", {
+        count: sorted.length,
+        videoId: currentVideoId,
+      });
+      return sorted;
     };
 
     const removeCheckHandler = addAsyncMessageHandler<
@@ -108,35 +129,14 @@ export default function App() {
       { type: "FETCH_TRANSCRIPT" },
       TranscriptResponse
     >("FETCH_TRANSCRIPT", async () => {
-      const tracks = await getValidTracks();
-      if (!tracks) return { available: false, lines: null };
-
-      const track = (tracks.find((t: CaptionTrack) => t.languageCode === "en") ?? tracks[0])!;
-      try {
-        const res = await fetch(track.baseUrl + "&fmt=json3");
-        const data = await res.json();
-        const lines: TranscriptLine[] = (data.events ?? [])
-          .filter((e: { segs?: unknown[]; tStartMs?: number; dDurationMs?: number }) => e.segs)
-          .map(
-            (e: {
-              segs?: Array<{ utf8?: string; tOffsetMs?: number }>;
-              tStartMs?: number;
-              dDurationMs?: number;
-            }) => {
-              const text = (e.segs ?? [])
-                .map((s) => s.utf8 ?? "")
-                .join("")
-                .trim();
-              const start = (e.tStartMs ?? 0) / 1000;
-              const end = start + (e.dDurationMs ?? 0) / 1000;
-              return { start, end, text };
-            },
-          )
-          .filter((r) => r.text.length > 0);
-        return { available: true, lines };
-      } catch {
+      const currentVideoId = extractVideoId();
+      if (!currentVideoId) {
         return { available: false, lines: null };
       }
+
+      const tracks = await getValidTracks();
+      const lines = await fetchYouTubeTranscript(currentVideoId, tracks ?? undefined);
+      return lines?.length ? { available: true, lines } : { available: false, lines: null };
     });
 
     return () => {

@@ -72,6 +72,38 @@ Full details: `docs/dev-guidelines.md`
 6. **Default exports required**: All custom components (`ui/components/`, `components/chat/`) MUST export a default in addition to any named export. This enables `lazy(() => import('<path>'))` without a `.then()` wrapper
 7. **no-use-effect skill**: Apply `no-use-effect` skill when building. Use @mantine/hooks replacements (useEventListener, useLocalStorage, etc.) over raw useEffect
 
+## Logging with LogTape
+
+LogTape is configured automatically in both the background (service worker) and content script entrypoints. Use it for debugging, error tracking, and observability.
+
+### Using the logger
+
+```ts
+import { getLogger } from "~/lib/logger";
+
+const logger = getLogger(["module", "area"]);
+
+logger.debug("Message {var}", { var: value });
+logger.warn("Warning {var}", { var: value });
+logger.error("Error {var}", { var: value });
+```
+
+All logs are tagged `[play-ai]` prefix for easy filtering.
+
+### Where logs appear
+
+- **Content script logs** (page-side): Open DevTools on the YouTube page → Console tab → filter `[play-ai]`
+- **Background logs** (service worker): Chrome Extensions menu → Service Worker console → filter `[play-ai]`
+
+### Currently instrumented
+
+- `background/messages/checkTranscript.ts` — transcript availability checks
+- `background/tools/transcript.ts` — transcript tool execution, caching, errors
+- `content/App.tsx` — caption track discovery, SPA race detection
+- `lib/youtube-transcript.ts` — InnerTube/timed-text fetch, parsing, format selection
+
+Add logging to new areas following the same pattern: `getLogger(["layer", "area"])`.
+
 ## @mantine/hooks
 
 Installed. 70+ headless hooks (zero deps). Check before creating custom hooks.
