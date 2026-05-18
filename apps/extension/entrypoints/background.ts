@@ -5,6 +5,12 @@ import { appRouter } from "~/background/router";
 
 export default defineBackground({
   async main() {
+    // Ensure clicking the toolbar button always opens the side panel.
+    // Called here (not only in onInstalled) so it applies on every SW restart
+    // and on dev reloads that don't bump the version.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (browser.sidePanel as any).setPanelBehavior({ openPanelOnActionClick: true });
+
     await setupStreamingCleanup();
     setupInstall();
     setupMessaging();
@@ -76,9 +82,6 @@ function setupInstall() {
         browser.tabs.create({ url });
       }
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (browser.sidePanel as any).setPanelBehavior({ openPanelOnActionClick: true });
   });
 }
 
