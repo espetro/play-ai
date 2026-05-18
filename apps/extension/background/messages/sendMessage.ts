@@ -2,7 +2,7 @@ import { streamText, dynamicTool, stepCountIs } from "ai";
 import * as v from "valibot";
 import { valibotSchema } from "@ai-sdk/valibot";
 import { buildProvider } from "@play-ai/ai";
-import type { BackgroundMessage, BackgroundResponse, ChatMessage } from "@play-ai/ai/core/types";
+import type { BackgroundMessage, BackgroundResponse, ChatMessage, Conversation } from "@play-ai/ai/core/types";
 import { storage } from "~/background/storage";
 import type { TranscriptResponse } from "~/lib/messaging";
 
@@ -10,43 +10,78 @@ type SendMessageMessage = Extract<BackgroundMessage, { type: "SEND_MESSAGE" }>;
 
 import { activePorts } from "./index";
 
-async function broadcastStateUpdate(patch: Partial<{ messages: Record<string, ChatMessage[]> }>) {
+interface ActiveStream {
+  conversationId: string;
+  partialContent: string;
+  controller: AbortController;
+  debounceTimer?: NodeJS.Timeout;
+}
+
+const activeStreams = new Map<string, ActiveStream>();
+
+async function broadcastStateUpdate() {
   const tabs = await browser.tabs.query({ url: "*://*.youtube.com/*" });
   for (const tab of tabs) {
     if (tab.id) {
-      browser.tabs.sendMessage(tab.id, { type: "STATE_UPDATE", patch }).catch(() => {});
+      browser.tabs.sendMessage(tab.id, { type: "STATE_UPDATE", patch: {} }).catch(() => {});
     }
   }
   for (const port of activePorts) {
-    port.postMessage({ type: "STATE_UPDATE", patch });
+    port.postMessage({ type: "STATE_UPDATE", patch: {} });
   }
 }
 
-function broadcastPartialMessage(videoId: string, message: ChatMessage) {
+function broadcastPartialMessage(conversationId: string, message: ChatMessage) {
   for (const port of activePorts) {
-    port.postMessage({ type: "MESSAGE_UPDATE", videoId, message });
+    port.postMessage({ type: "MESSAGE_UPDATE", conversationId, message });
   }
   browser.tabs.query({ url: "*://*.youtube.com/*" }).then((tabs) => {
     for (const tab of tabs) {
       if (tab.id) {
         browser.tabs
-          .sendMessage(tab.id, { type: "MESSAGE_UPDATE", videoId, message })
+          .sendMessage(tab.id, { type: "MESSAGE_UPDATE", conversationId, message })
           .catch(() => {});
       }
     }
   });
 }
 
-export async function sendMessageHandler(message: SendMessageMessage): Promise<BackgroundResponse> {
-  const { videoId, content } = message.payload;
-  const state = await storage.getAll();
+async function flushStreamingMessage(conversationId: string, content: string) {
+  const { streamingMessages } = (await browser.storage.local.get(["streamingMessages"])) as {
+    streamingMessages?: Record<string, string>;
+  };
+  const updated = { ...streamingMessages, [conversationId]: content };
+  await browser.storage.local.set({ streamingMessages: updated });
+}
 
-  if (!state.config) {
+export async function sendMessageHandler(message: SendMessageMessage): Promise<BackgroundResponse> {
+  const { conversationId, content } = message.payload;
+  const { conversations, config } = (await browser.storage.local.get(["conversations", "config"])) as {
+    conversations?: Record<string, Conversation>;
+    config?: any;
+  };
+
+  if (!config) {
     return { type: "ERROR", payload: { message: "No config set" } };
   }
 
+  if (!conversations || !conversations[conversationId]) {
+    return { type: "ERROR", payload: { message: "Conversation not found" } };
+  }
+
+  const conversation = conversations[conversationId];
+  const videoId = conversation.videoId;
   const isVideoContext = videoId !== "_default";
-  const messages = state.messages[videoId] ?? [];
+  const messages = conversation.messages;
+
+  // Abort any previous stream for this conversation
+  const existing = activeStreams.get(conversationId);
+  if (existing) {
+    existing.controller.abort();
+    if (existing.debounceTimer) clearTimeout(existing.debounceTimer);
+    activeStreams.delete(conversationId);
+  }
+
   const userMessage: ChatMessage = {
     id: Math.random().toString(36).substr(2, 9),
     role: "user",
@@ -54,11 +89,19 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     timestamp: Date.now(),
   };
 
-  const updatedMessages = { ...state.messages, [videoId]: [...messages, userMessage] };
-  await storage.setPartial({ messages: updatedMessages });
+  // Add user message immediately
+  const updatedConversations = {
+    ...conversations,
+    [conversationId]: {
+      ...conversation,
+      messages: [...messages, userMessage],
+      updatedAt: Date.now(),
+    },
+  };
+  await browser.storage.local.set({ conversations: updatedConversations });
 
-  const provider = buildProvider(state.config);
-  const modelId = state.config.model;
+  const provider = buildProvider(config);
+  const modelId = config.model;
 
   const assistantMessageId = Math.random().toString(36).substr(2, 9);
   const assistantMessage: ChatMessage = {
@@ -68,7 +111,13 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     timestamp: Date.now(),
   };
 
-  let fullText = "";
+  const controller = new AbortController();
+  const activeStream: ActiveStream = {
+    conversationId,
+    partialContent: "",
+    controller,
+  };
+  activeStreams.set(conversationId, activeStream);
 
   const systemPrompt = isVideoContext
     ? "You are a helpful assistant answering questions about YouTube videos. You have access to a transcript tool — use it proactively whenever the user asks about the video content, what was said, specific moments, quotes, or timestamps."
@@ -122,30 +171,83 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
           }
         : undefined,
       stopWhen: stepCountIs(3),
+      abortSignal: controller.signal,
     });
 
     for await (const chunk of stream.textStream) {
-      fullText += chunk;
-      assistantMessage.content = fullText;
-      broadcastPartialMessage(videoId, assistantMessage);
+      if (controller.signal.aborted) break;
+
+      activeStream.partialContent += chunk;
+      assistantMessage.content = activeStream.partialContent;
+
+      // Broadcast to ports immediately for live updates
+      broadcastPartialMessage(conversationId, assistantMessage);
+
+      // Debounced flush to storage every 400ms
+      if (activeStream.debounceTimer) clearTimeout(activeStream.debounceTimer);
+      activeStream.debounceTimer = setTimeout(() => {
+        flushStreamingMessage(conversationId, activeStream.partialContent).catch(console.error);
+      }, 400);
     }
 
-    const finalMessages = {
-      ...state.messages,
-      [videoId]: [...(state.messages[videoId] ?? []), userMessage, assistantMessage],
+    // Final flush to storage
+    if (activeStream.debounceTimer) clearTimeout(activeStream.debounceTimer);
+    assistantMessage.content = activeStream.partialContent;
+
+    const finalConversations = {
+      ...updatedConversations,
+      [conversationId]: {
+        ...updatedConversations[conversationId],
+        messages: [...updatedConversations[conversationId].messages, assistantMessage],
+        updatedAt: Date.now(),
+      },
     };
-    await storage.setPartial({ messages: finalMessages });
-    await broadcastStateUpdate({});
+    await browser.storage.local.set({
+      conversations: finalConversations,
+      streamingMessages: { ...(await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages },
+    });
+    const streamingMessages = (await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages || {};
+    delete streamingMessages[conversationId];
+    await browser.storage.local.set({ streamingMessages });
+
+    activeStreams.delete(conversationId);
+    await broadcastStateUpdate();
   } catch (error) {
+    if (error && typeof error === "object" && "name" in error && (error as any).name === "AbortError") {
+      activeStreams.delete(conversationId);
+      return { type: "ERROR", payload: { message: "Stream cancelled" } };
+    }
+
     console.error("Stream error:", error);
     assistantMessage.content = "Error streaming response";
-    const finalMessages = {
-      ...state.messages,
-      [videoId]: [...(state.messages[videoId] ?? []), userMessage, assistantMessage],
+    const finalConversations = {
+      ...updatedConversations,
+      [conversationId]: {
+        ...updatedConversations[conversationId],
+        messages: [...updatedConversations[conversationId].messages, assistantMessage],
+        updatedAt: Date.now(),
+      },
     };
-    await storage.setPartial({ messages: finalMessages });
-    await broadcastStateUpdate({});
+    await browser.storage.local.set({
+      conversations: finalConversations,
+    });
+
+    const streamingMessages = (await browser.storage.local.get(["streamingMessages"]) as any).streamingMessages || {};
+    delete streamingMessages[conversationId];
+    await browser.storage.local.set({ streamingMessages });
+
+    activeStreams.delete(conversationId);
+    await broadcastStateUpdate();
   }
 
   return { type: "CHAT_RESPONSE", payload: assistantMessage };
+}
+
+export function abortStreamForConversation(conversationId: string) {
+  const stream = activeStreams.get(conversationId);
+  if (stream) {
+    stream.controller.abort();
+    if (stream.debounceTimer) clearTimeout(stream.debounceTimer);
+    activeStreams.delete(conversationId);
+  }
 }
