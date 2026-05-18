@@ -1,9 +1,10 @@
 import { existsSync } from "fs";
 import { homedir } from "os";
 import { defineConfig } from "wxt";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import reactCompiler from "babel-plugin-react-compiler";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
 
 const HOME = homedir();
 
@@ -19,6 +20,7 @@ export default defineConfig({
   manifest: (env) => ({
     name: "Play AI - YouTube Chat",
     description: "Chat about YouTube videos with your AI model",
+    action: {},
     permissions: [
       "storage",
       "scripting",
@@ -46,15 +48,18 @@ export default defineConfig({
     // Expose a TCP CDP endpoint so agent-browser can connect via --cdp 9222
     chromiumArgs: ["--remote-debugging-port=9222"],
   },
-  babel: () => ({
+  vite: () => ({
     plugins: [
-      reactCompiler({
-        compilationMode: "annotation",
+      react(),
+      tailwindcss(),
+      babel({
+        presets: [
+          reactCompilerPreset({
+            compilationMode: "annotation",
+          }),
+        ],
       }),
     ],
-  }),
-  vite: () => ({
-    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         "@play-ai/ai": new URL("../../packages/ai/src", import.meta.url).pathname,
