@@ -1,8 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { $conversations, $activeConversationId, $videoId } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
-import { sendMessage } from "~/lib/messaging";
-import type { BackgroundResponse } from "@play-ai/ai/core/types";
+import { trpcClient } from "~/lib/trpc";
 import { Button } from "~/components/ui/button";
 import { Trash2, Plus } from "lucide-react";
 
@@ -15,29 +14,20 @@ export default function Conversations() {
   const sorted = Object.values(conversations).sort((a, b) => b.updatedAt - a.updatedAt);
 
   const handleOpen = async (conversationId: string) => {
-    await sendMessage({
-      type: "SET_ACTIVE_CONVERSATION",
-      payload: { conversationId },
-    });
+    await trpcClient.conversation.setActive.mutate({ conversationId });
     navigate({ to: "/" });
   };
 
   const handleDelete = async (conversationId: string) => {
     if (confirm("Delete this conversation?")) {
-      await sendMessage({
-        type: "DELETE_CONVERSATION",
-        payload: { conversationId },
-      });
+      await trpcClient.conversation.delete.mutate({ conversationId });
     }
   };
 
   const handleNewConversation = async () => {
     if (!currentTabVideoId) return;
-    const createRes = await sendMessage<BackgroundResponse>({
-      type: "CREATE_CONVERSATION",
-      payload: { videoId: currentTabVideoId },
-    });
-    if (createRes?.type === "CONVERSATION_CREATED") {
+    const createRes = await trpcClient.conversation.create.mutate({ videoId: currentTabVideoId });
+    if (createRes?.conversationId) {
       navigate({ to: "/" });
     }
   };

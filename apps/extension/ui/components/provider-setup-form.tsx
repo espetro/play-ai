@@ -1,6 +1,6 @@
 import { useForm, useField, Form as FormischForm, getInput } from "@formisch/react";
 import type { AppConfig } from "~/lib/storage";
-import { sendMessage } from "~/lib/messaging";
+import { trpcClient } from "~/lib/trpc";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { useState } from "react";
-import type { ProviderType, BackgroundResponse } from "@play-ai/ai/core/types";
+import type { ProviderType } from "@play-ai/ai/core/types";
 import ProviderSchema, { isProvider, type ProviderForm } from "~/lib/schemas/provider-form";
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
@@ -85,21 +85,19 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
     setErrorMessage("");
 
     try {
-      const response = await sendMessage<BackgroundResponse>({
-        type: "TEST_CONNECTION",
-        payload: { provider, baseUrl, apiKey },
-      });
+      const response = await trpcClient.config.testConnection.mutate({ provider, baseUrl, apiKey });
 
       if (!response) {
         setConnectionStatus("error");
         setErrorMessage("No response from background script");
-      } else if (response.type === "CONNECTION_TEST") {
-        if ("error" in response.payload) {
-          setConnectionStatus("error");
-          setErrorMessage(response.payload.error);
-        } else {
+      } else {
+        const result = response as { success: boolean; models?: string[]; error?: string };
+        if (result.success) {
           setConnectionStatus("connected");
-          setAvailableModels(response.payload.models);
+          setAvailableModels(result.models ?? []);
+        } else {
+          setConnectionStatus("error");
+          setErrorMessage(result.error ?? "Connection failed");
         }
       }
     } catch (error) {
@@ -111,6 +109,7 @@ export const ProviderSetupForm = ({ initialConfig, onSave, onCancel }: ProviderS
   const handleSaveSubmit = async (output: ProviderForm) => {
     try {
       const config: AppConfig = {
+        ...(initialConfig?.id ? { id: initialConfig.id } : { id: crypto.randomUUID() }),
         provider: output.provider,
         baseUrl: output.baseUrl,
         apiKey: output.apiKey,

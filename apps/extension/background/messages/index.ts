@@ -1,41 +1,26 @@
 import type { Browser } from "wxt/browser";
 import type { BackgroundMessage, BackgroundResponse } from "@play-ai/ai/core/types";
 import { getStateHandler } from "./getState";
-import { setConfigHandler } from "./setConfig";
 import { sendMessageHandler } from "./sendMessage";
-import { clearChatHandler } from "./clearChat";
-import { testConnectionHandler } from "./testConnection";
 import { getTranscriptHandler } from "./getTranscript";
-import { getModelsHandler } from "./getModels";
 import { checkTranscriptHandler } from "./checkTranscript";
-import { createConversationHandler } from "./createConversation";
-import { deleteConversationHandler } from "./deleteConversation";
-import { setActiveConversationHandler } from "./setActiveConversation";
 
 type HandlerForType<K extends BackgroundMessage["type"]> = (
   message: Extract<BackgroundMessage, { type: K }>,
 ) => Promise<BackgroundResponse>;
 
-const handlers: {
-  [K in BackgroundMessage["type"]]: HandlerForType<K>;
-} = {
-  GET_STATE: getStateHandler as HandlerForType<"GET_STATE">,
-  SET_CONFIG: setConfigHandler as HandlerForType<"SET_CONFIG">,
-  SEND_MESSAGE: sendMessageHandler as HandlerForType<"SEND_MESSAGE">,
-  CREATE_CONVERSATION: createConversationHandler as HandlerForType<"CREATE_CONVERSATION">,
-  DELETE_CONVERSATION: deleteConversationHandler as HandlerForType<"DELETE_CONVERSATION">,
-  SET_ACTIVE_CONVERSATION:
-    setActiveConversationHandler as HandlerForType<"SET_ACTIVE_CONVERSATION">,
-  CLEAR_CHAT: clearChatHandler as HandlerForType<"CLEAR_CHAT">,
-  TEST_CONNECTION: testConnectionHandler as HandlerForType<"TEST_CONNECTION">,
-  GET_TRANSCRIPT: getTranscriptHandler as HandlerForType<"GET_TRANSCRIPT">,
-  GET_MODELS: getModelsHandler as HandlerForType<"GET_MODELS">,
-  CHECK_TRANSCRIPT: checkTranscriptHandler as HandlerForType<"CHECK_TRANSCRIPT">,
+// Use explicit cast — handlers only covers a subset of BackgroundMessage["type"]
+// since migrated CRUD types are now served via tRPC, not raw message handlers.
+const handlers = {
+  GET_STATE: getStateHandler,
+  SEND_MESSAGE: sendMessageHandler,
+  GET_TRANSCRIPT: getTranscriptHandler,
+  CHECK_TRANSCRIPT: checkTranscriptHandler,
   STATE_UPDATE: async () => ({
     type: "ERROR",
     payload: { message: "STATE_UPDATE not handled in background" },
   }),
-};
+} as Partial<Record<BackgroundMessage["type"], (message: BackgroundMessage) => Promise<BackgroundResponse>>>;
 
 // Use the explicit sendResponse + return true pattern.
 // This works in all Chrome versions and is immune to service worker termination
@@ -70,9 +55,14 @@ export const activePorts = new Set<Browser.runtime.Port>();
 export function registerPort(port: Browser.runtime.Port) {
   if (port.name === "sidepanel") {
     activePorts.add(port);
-    port.onDisconnect.addListener(() => {
+    try {
+      port.onDisconnect.addListener(() => {
+        activePorts.delete(port);
+      });
+    } catch {
+      // Port disconnected before listener could be registered (extension context invalidated)
       activePorts.delete(port);
-    });
+    }
   }
 }
 
@@ -87,16 +77,4 @@ export function setupPortHandlers(port: Browser.runtime.Port) {
   });
 }
 
-export {
-  getStateHandler,
-  setConfigHandler,
-  sendMessageHandler,
-  clearChatHandler,
-  testConnectionHandler,
-  getTranscriptHandler,
-  getModelsHandler,
-  checkTranscriptHandler,
-  createConversationHandler,
-  deleteConversationHandler,
-  setActiveConversationHandler,
-};
+export { getStateHandler, sendMessageHandler, getTranscriptHandler, checkTranscriptHandler };

@@ -4,7 +4,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { $configs, $activeConfigId, type AppConfig } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
-import { sendMessage } from "~/lib/messaging";
+import { trpcClient } from "~/lib/trpc";
 import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
 
 export default function Settings() {
@@ -14,7 +14,7 @@ export default function Settings() {
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
 
   const handleSave = async (newConfig: AppConfig) => {
-    await sendMessage({ type: "SET_CONFIG", payload: newConfig });
+    await trpcClient.config.set.mutate(newConfig);
     setEditingConfigId(null);
   };
 

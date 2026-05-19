@@ -13,7 +13,7 @@ import { useStorageItem } from "~/ui/hooks/useStorageItem";
 import { useTranscriptStatus } from "~/ui/hooks/useTranscriptStatus";
 import { sendMessage } from "~/lib/messaging";
 import { trpcClient } from "~/lib/trpc";
-import type { ChatMessage, BackgroundResponse } from "@play-ai/ai/core/types";
+import type { ChatMessage } from "@play-ai/ai/core/types";
 
 export default function Chat() {
   const currentTabVideoId = useStorageItem($videoId, null);
@@ -51,14 +51,11 @@ export default function Chat() {
     try {
       if (!activeConversationId) {
         const videoId = currentTabVideoId ?? "_default";
-        const createRes = await sendMessage<BackgroundResponse>({
-          type: "CREATE_CONVERSATION",
-          payload: { videoId },
-        });
-        if (createRes?.type === "CONVERSATION_CREATED") {
+        const createRes = await trpcClient.conversation.create.mutate({ videoId });
+        if (createRes?.conversationId) {
           await sendMessage({
             type: "SEND_MESSAGE",
-            payload: { conversationId: createRes.payload.conversationId, content },
+            payload: { conversationId: createRes.conversationId, content },
           });
         }
       } else {
@@ -87,26 +84,20 @@ export default function Chat() {
     const tabs = await trpcClient.tabs.list.query();
     const activeTab = tabs.find((t) => t.active);
     const videoId = extractVideoId(activeTab?.url) ?? "_default";
-    const createRes = await sendMessage<BackgroundResponse>({
-      type: "CREATE_CONVERSATION",
-      payload: { videoId },
-    });
-    if (createRes?.type === "CONVERSATION_CREATED") {
+    const createRes = await trpcClient.conversation.create.mutate({ videoId });
+    if (createRes?.conversationId) {
       // New conversation is auto-activated by createConversationHandler
     }
   };
 
   const handleModelChange = async (model: string) => {
     if (!config) return;
-    await sendMessage({ type: "SET_CONFIG", payload: { ...config, model } });
+    await trpcClient.config.set.mutate({ ...config, model });
   };
 
   const handleFetchModels = async (): Promise<string[]> => {
     try {
-      const response = await sendMessage<BackgroundResponse>({ type: "GET_MODELS" });
-      if (response && response.type === "MODELS_LIST") {
-        return response.payload;
-      }
+      return await trpcClient.config.getModels.query();
     } catch {
       // ignore
     }

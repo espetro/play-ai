@@ -1,6 +1,7 @@
 import { storage } from "#imports";
 
 export interface AppConfig {
+  id: string;
   provider: "anthropic" | "openai";
   apiKey: string;
   baseUrl?: string;
