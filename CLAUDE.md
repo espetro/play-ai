@@ -62,6 +62,14 @@ Key hooks: useLocalStorage, useDebouncedValue, useMutationObserver, useIntersect
 Import: `import { useDisclosure } from '@mantine/hooks'`
 Full list: https://mantine.dev/hooks/package/
 
+## Observability & Telemetry
+
+- **Package**: `packages/observability/` — OTEL pipeline + Phoenix dev server (`bun dev` starts it via turborepo)
+- **Exporter**: Use `@opentelemetry/exporter-trace-otlp-proto` (binary protobuf). Phoenix rejects JSON (`…-http`) with 415. gRPC (`…-grpc`) doesn't work in browser extensions.
+- **DEV-only**: All telemetry gated on `import.meta.env.DEV`. Production builds tree-shake the entire pipeline.
+- **AI SDK**: `streamText()` uses `experimental_telemetry: { isEnabled: import.meta.env.DEV }` — spans flow through the same provider.
+- **Turborepo cache**: If Phoenix fails to start (port in use), turborepo caches the failure. Run `turbo clean` before retrying.
+
 ## Docs & Guidelines
 
 - **Architecture**: `docs/architecture.md` — Layers, data flow, communication patterns
