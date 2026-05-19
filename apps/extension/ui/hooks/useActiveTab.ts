@@ -1,6 +1,6 @@
-import { useSyncExternalStore, useEffect } from 'react';
-import { trpcClient } from '~/lib/trpc';
-import { tabStore } from '~/lib/stores/tabStore';
+import { useSyncExternalStore, useEffect } from "react";
+import { trpcClient } from "~/lib/trpc";
+import { tabStore } from "~/lib/stores/tabStore";
 
 export function useActiveTab() {
   useEffect(function subscribeToActivatedTab() {

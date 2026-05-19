@@ -70,7 +70,9 @@ export function createTranscriptTool(videoId: string) {
 
       if (!response?.available || !response.lines?.length) {
         logger.warn("No transcript available in response for video {videoId}", { videoId });
-        throw new Error("No transcript available for this video. It may not have subtitles enabled.");
+        throw new Error(
+          "No transcript available for this video. It may not have subtitles enabled.",
+        );
       }
       await setTranscriptCache(videoId, response.lines);
       logger.debug("Cached transcript for video {videoId}, lines={count}", {
@@ -79,6 +81,5 @@ export function createTranscriptTool(videoId: string) {
       });
       return formatForPrompt(response.lines);
     },
-
   });
 }

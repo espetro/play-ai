@@ -1,8 +1,6 @@
 import React from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import {
-  Suggestion,
-} from "~/components/ai-elements/suggestion";
+import { Suggestion } from "~/components/ai-elements/suggestion";
 import { DEFAULT_SUGGESTIONS } from "~/ui/constants/suggestions";
 
 interface ChatSuggestionsProps {

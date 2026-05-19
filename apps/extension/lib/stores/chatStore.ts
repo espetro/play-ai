@@ -1,6 +1,6 @@
-type ChatSnapshot = { status: 'idle' | 'streaming' | 'done' | 'error'; text: string };
+type ChatSnapshot = { status: "idle" | "streaming" | "done" | "error"; text: string };
 
-let snapshot: ChatSnapshot = { status: 'idle', text: '' };
+let snapshot: ChatSnapshot = { status: "idle", text: "" };
 const listeners = new Set<() => void>();
 
 export const chatStore = {
@@ -13,5 +13,5 @@ export const chatStore = {
     snapshot = { ...snapshot, ...next };
     listeners.forEach((l) => l());
   },
-  reset: () => chatStore.update({ status: 'idle', text: '' }),
+  reset: () => chatStore.update({ status: "idle", text: "" }),
 };

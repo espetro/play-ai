@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
-import { fetchYouTubeTranscript, fetchCaptionTracksFromHtml, type CaptionTrack } from "~/lib/youtube-transcript";
+import {
+  fetchYouTubeTranscript,
+  fetchCaptionTracksFromHtml,
+  type CaptionTrack,
+} from "~/lib/youtube-transcript";
 import { addAsyncMessageHandler, sendMessage } from "~/lib/messaging";
 import type { ChatMessage } from "~/lib/storage";
 import type { TranscriptResponse } from "~/lib/messaging";
@@ -36,22 +40,21 @@ export default function App() {
 
   const videoIdFromRoute = videoId;
 
-  useBrowserMessageListener("MESSAGE_UPDATE", (request: {
-    type: "MESSAGE_UPDATE";
-    videoId: string;
-    message: ChatMessage;
-  }) => {
-    if (request.videoId === videoIdFromRoute) {
-      const msg = request.message as ChatMessage;
-      setMessages((prev) => {
-        const existing = prev.find((m) => m.id === msg.id);
-        if (existing) {
-          return prev.map((m) => (m.id === msg.id ? { ...msg, timestamp: msg.timestamp } : m));
-        }
-        return [...prev, msg];
-      });
-    }
-  });
+  useBrowserMessageListener(
+    "MESSAGE_UPDATE",
+    (request: { type: "MESSAGE_UPDATE"; videoId: string; message: ChatMessage }) => {
+      if (request.videoId === videoIdFromRoute) {
+        const msg = request.message as ChatMessage;
+        setMessages((prev) => {
+          const existing = prev.find((m) => m.id === msg.id);
+          if (existing) {
+            return prev.map((m) => (m.id === msg.id ? { ...msg, timestamp: msg.timestamp } : m));
+          }
+          return [...prev, msg];
+        });
+      }
+    },
+  );
 
   useMountEffect(() => {
     const getValidTracks = async (): Promise<CaptionTrack[] | null> => {
@@ -85,10 +88,9 @@ export default function App() {
             logger.debug("Found {count} tracks via HTML fallback", { count: htmlTracks.length });
             return htmlTracks;
           }
-          logger.warn(
-            "No caption tracks found for video {videoId} after HTML fallback",
-            { videoId: currentVideoId },
-          );
+          logger.warn("No caption tracks found for video {videoId} after HTML fallback", {
+            videoId: currentVideoId,
+          });
           return null;
         }
       }

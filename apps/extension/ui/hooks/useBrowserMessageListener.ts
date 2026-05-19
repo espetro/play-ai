@@ -21,10 +21,7 @@ export function useBrowserMessageListener<TMessage extends { type: string }>(
   handler: (message: TMessage) => void,
 ): void {
   useMountEffect(function registerBrowserMessageListener() {
-    const listener = (
-      message: unknown,
-      _sender: Browser.runtime.MessageSender,
-    ): void => {
+    const listener = (message: unknown, _sender: Browser.runtime.MessageSender): void => {
       if ((message as { type?: string }).type === type) {
         handler(message as TMessage);
       }

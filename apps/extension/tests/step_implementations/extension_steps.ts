@@ -14,9 +14,12 @@ export default class ExtensionSteps {
   @Step("Navigate to YouTube video <url>")
   async navigate(url: string) {
     console.log(`[Gauge] Opening ${url}`);
-    execSync(`agent-browser --extension apps/extension/.output/chrome-mv3 --state scripts/youtube-cookies.json open "${url}"`, {
-      stdio: "inherit",
-    });
+    execSync(
+      `agent-browser --extension apps/extension/.output/chrome-mv3 --state scripts/youtube-cookies.json open "${url}"`,
+      {
+        stdio: "inherit",
+      },
+    );
   }
 
   @Step("Secondary sidebar should be present")

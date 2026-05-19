@@ -10,12 +10,14 @@ export interface CaptionTrack {
 }
 
 export function selectBestTrack(tracks: CaptionTrack[]): CaptionTrack | null {
-  return [...tracks].sort((a, b) => {
-    const aIsAsr = a.kind === "asr" ? 1 : 0;
-    const bIsAsr = b.kind === "asr" ? 1 : 0;
-    if (aIsAsr !== bIsAsr) return aIsAsr - bIsAsr;
-    return a.languageCode === "en" ? -1 : b.languageCode === "en" ? 1 : 0;
-  })[0] ?? null;
+  return (
+    [...tracks].sort((a, b) => {
+      const aIsAsr = a.kind === "asr" ? 1 : 0;
+      const bIsAsr = b.kind === "asr" ? 1 : 0;
+      if (aIsAsr !== bIsAsr) return aIsAsr - bIsAsr;
+      return a.languageCode === "en" ? -1 : b.languageCode === "en" ? 1 : 0;
+    })[0] ?? null
+  );
 }
 
 function parseJson3Events(
@@ -198,9 +200,10 @@ export async function fetchCaptionTracksFromHtml(url: string): Promise<CaptionTr
     }
 
     const html = await response.text();
-    const playerResponse = extractJsonBlob(html, "ytInitialPlayerResponse") as
-      | YouTubePlayerResponse
-      | null;
+    const playerResponse = extractJsonBlob(
+      html,
+      "ytInitialPlayerResponse",
+    ) as YouTubePlayerResponse | null;
 
     if (!playerResponse) {
       logger.debug("No ytInitialPlayerResponse found in HTML");
@@ -274,8 +277,7 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
     }
 
     const data = await response.json();
-    const captionTracks =
-      data.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+    const captionTracks = data.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
     if (!captionTracks.length) {
       logger.error("InnerTube: no caption tracks in response");
       return null;

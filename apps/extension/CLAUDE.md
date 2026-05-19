@@ -15,6 +15,7 @@ bun run test:e2e
 ```
 
 Tests verify:
+
 - Extension UI mounts correctly on YouTube with consent bypass
 - Transcript availability detection works
 - Extension remounts properly after SPA navigation

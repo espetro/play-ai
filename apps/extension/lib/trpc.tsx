@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { createTRPCClient } from '@trpc/client';
-import { createTRPCReact } from '@trpc/react-query';
-import { chromeLink } from '@kstonekuan/trpc-chrome/link';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { AppRouter } from '~/background/router';
+import { useState } from "react";
+import { createTRPCClient } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
+import { chromeLink } from "@kstonekuan/trpc-chrome/link";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { AppRouter } from "~/background/router";
 
 // Imperative client (for use inside stores / hooks)
 let port: ReturnType<typeof browser.runtime.connect> | null = null;

@@ -48,7 +48,10 @@ function scrapeGoogleResults(): WebSearchResult[] {
     if (!snippet) {
       for (const span of el.querySelectorAll("span")) {
         const t = span.textContent?.trim() || "";
-        if (t.length > 20) { snippet = t; break; }
+        if (t.length > 20) {
+          snippet = t;
+          break;
+        }
       }
     }
     out.push({ title, url, snippet });

@@ -70,9 +70,7 @@ export default function Settings() {
                   <Badge variant="secondary" className="text-xs">
                     {config.provider === "anthropic" ? "Anthropic" : "OpenAI-compat"}
                   </Badge>
-                  {activeConfigId === config.id && (
-                    <Badge className="text-xs">Active</Badge>
-                  )}
+                  {activeConfigId === config.id && <Badge className="text-xs">Active</Badge>}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{config.model}</p>

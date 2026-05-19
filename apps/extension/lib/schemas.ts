@@ -1,7 +1,7 @@
-import * as v from 'valibot';
+import * as v from "valibot";
 
 export const messageSchema = v.object({
-  role: v.picklist(['user', 'assistant', 'system']),
+  role: v.picklist(["user", "assistant", "system"]),
   content: v.string(),
 });
 

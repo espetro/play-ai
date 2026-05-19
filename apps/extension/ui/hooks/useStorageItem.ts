@@ -35,20 +35,26 @@ export function useStorageItem<T>(item: WxtStorageItem<T, {}>, fallback: T): T {
   // Register a single watcher on mount. watch() returns an unwatch function
   // that we call on unmount. This runs exactly once per mount regardless of
   // how many times subscribe's useCallback reference changes.
-  useEffect(function watchStorageItemChanges() {
-    const unwatch = item.watch((newValue: T) => {
-      entry.value = newValue ?? fallbackRef.current;
-      entry.notifiers.forEach((n) => n());
-    });
-    return function unwatchStorageItemChanges() {
-      unwatch();
-    };
-  }, [item, entry]);
+  useEffect(
+    function watchStorageItemChanges() {
+      const unwatch = item.watch((newValue: T) => {
+        entry.value = newValue ?? fallbackRef.current;
+        entry.notifiers.forEach((n) => n());
+      });
+      return function unwatchStorageItemChanges() {
+        unwatch();
+      };
+    },
+    [item, entry],
+  );
 
-  const subscribe = useCallback((onChange: () => void) => {
-    entry.notifiers.add(onChange);
-    return () => entry.notifiers.delete(onChange);
-  }, [entry]);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      entry.notifiers.add(onChange);
+      return () => entry.notifiers.delete(onChange);
+    },
+    [entry],
+  );
 
   const getSnapshot = useCallback(() => entry.value, [entry]);
 

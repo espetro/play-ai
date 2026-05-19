@@ -43,7 +43,9 @@ export default function Chat() {
   const conversationVideoId = activeConversation?.videoId;
   const isCurrentTab = conversationVideoId === currentTabVideoId;
 
-  const { status: transcriptStatus } = useTranscriptStatus(currentTabVideoId ?? conversationVideoId ?? null);
+  const { status: transcriptStatus } = useTranscriptStatus(
+    currentTabVideoId ?? conversationVideoId ?? null,
+  );
 
   const handleSendMessage = async (content: string, optimisticId: string) => {
     try {

@@ -47,7 +47,9 @@ export function createWebSearchTool() {
           | undefined;
 
         if (!searchResults || searchResults.length === 0) {
-          throw new Error("No search results found. Google may be showing a consent page or the query returned no results.");
+          throw new Error(
+            "No search results found. Google may be showing a consent page or the query returned no results.",
+          );
         }
 
         logger.debug("Found {count} results for query: {query}", {
@@ -56,10 +58,7 @@ export function createWebSearchTool() {
         });
 
         const formatted = searchResults
-          .map(
-            (r, i) =>
-              `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`,
-          )
+          .map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`)
           .join("\n\n");
 
         return truncateResult(formatted);

@@ -10,5 +10,5 @@ const router = createRouter({ routeTree, history: hashHistory });
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <RouterProvider router={router} />
-  </ErrorBoundary>
+  </ErrorBoundary>,
 );

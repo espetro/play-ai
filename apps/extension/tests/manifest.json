@@ -16,25 +16,17 @@
   },
 
   "specs": {
-    "directories": [
-      "specs"
-    ],
-    "excludePatterns": [
-      "*.md"
-    ]
+    "directories": ["specs"],
+    "excludePatterns": ["*.md"]
   },
 
   "steps": {
-    "directories": [
-      "step_implementations"
-    ]
+    "directories": ["step_implementations"]
   },
 
   "env": {
     "default": "env/default"
   },
 
-  "plugins": [
-    "ts"
-  ]
+  "plugins": ["ts"]
 }

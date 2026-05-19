@@ -17,5 +17,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <TrpcProvider>
       <RouterProvider router={router} />
     </TrpcProvider>
-  </ErrorBoundary>
+  </ErrorBoundary>,
 );
