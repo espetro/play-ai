@@ -136,6 +136,10 @@ export const $activeConfigId = storage.defineItem<string | null>("local:activeCo
   fallback: null,
 });
 
+export const $telemetryEnabled = storage.defineItem<boolean>("local:telemetryEnabled", {
+  fallback: false,
+});
+
 export async function getActiveConfig(): Promise<AppConfig | null> {
   const configs = await browser.storage.local.get(["configs", "activeConfigId"]);
   const configList = (configs.configs as AppConfig[] | undefined) ?? [];

@@ -1,17 +1,42 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { $configs, $activeConfigId, type AppConfig } from "~/lib/storage";
+import { $configs, $activeConfigId, $telemetryEnabled, type AppConfig } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
+import { useMountEffect } from "~/ui/hooks/useBrowserMessageListener";
 import { trpcClient } from "~/lib/trpc";
 import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
 
 export default function Settings() {
   const configs = useStorageItem($configs, []);
   const activeConfigId = useStorageItem($activeConfigId, null);
+  const telemetryEnabled = useStorageItem($telemetryEnabled, false);
   const [formOpen, setFormOpen] = useState(configs.length === 0);
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
+  const [phoenixAvailable, setPhoenixAvailable] = useState(true);
+
+  const checkPhoenix = useCallback(async () => {
+    try {
+      const _ = await fetch("http://localhost:6006", { mode: "no-cors" });
+      setPhoenixAvailable(true);
+    } catch {
+      setPhoenixAvailable(false);
+    }
+  }, []);
+
+  const handleToggleTelemetry = useCallback(async () => {
+    const newValue = !telemetryEnabled;
+    await browser.runtime.sendMessage({
+      type: "SET_TELEMETRY_ENABLED",
+      enabled: newValue,
+    });
+    await $telemetryEnabled.set(newValue);
+  }, [telemetryEnabled]);
+
+  useMountEffect(function checkPhoenixOnMount() {
+    checkPhoenix();
+  });
 
   const handleSave = async (newConfig: AppConfig) => {
     await trpcClient.config.set.mutate(newConfig);
@@ -30,7 +55,7 @@ export default function Settings() {
     const updated = configs.filter((c) => c.id !== configId);
     await browser.storage.local.set({ configs: updated });
     if (activeConfigId === configId && updated.length > 0) {
-      await browser.storage.local.set({ activeConfigId: updated[0].id });
+      await browser.storage.local.set({ activeConfigId: updated[0]?.id });
     } else if (updated.length === 0) {
       await browser.storage.local.set({ activeConfigId: null });
     }
@@ -45,6 +70,37 @@ export default function Settings() {
 
   return (
     <div className="p-4 space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Observability</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Trace AI requests to a local Phoenix instance at http://localhost:6006
+        </p>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={handleToggleTelemetry}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              telemetryEnabled ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                telemetryEnabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+          <span className="text-sm">{telemetryEnabled ? "Enabled" : "Disabled"}</span>
+        </div>
+        {telemetryEnabled && !phoenixAvailable && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Phoenix not running — start it with{" "}
+            <code className="bg-muted px-1 py-0.5 rounded">bun phoenix</code> or{" "}
+            <code className="bg-muted px-1 py-0.5 rounded">
+              cd packages/observability && bun dev
+            </code>
+          </p>
+        )}
+      </div>
+
       <div>
         <h2 className="text-lg font-semibold">Providers</h2>
       </div>

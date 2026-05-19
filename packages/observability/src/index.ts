@@ -6,17 +6,41 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 
 export { trace, SpanStatusCode };
 
+const PHOENIX_URL = "http://localhost:6006";
+
+async function isPhoenixAvailable(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+    const response = await fetch(`${PHOENIX_URL}/`, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function setupTelemetry() {
-  console.log("[observability] DEV:", import.meta.env.DEV);
-  if (!import.meta.env.DEV) {
-    console.log("[observability] Skipping - not DEV mode");
+  const phoenixAvailable = await isPhoenixAvailable();
+
+  if (!phoenixAvailable) {
+    const hint =
+      import.meta.env.DEV
+        ? "Run `bun phoenix` or `cd packages/observability && bun dev` to enable."
+        : "Run `bun phoenix` or `cd packages/observability && bun dev` to enable in development.";
+    console.log(`[observability] Phoenix not available at ${PHOENIX_URL} — telemetry disabled. ${hint}`);
     return;
   }
 
+  const modeLabel = import.meta.env.DEV ? "development" : "production";
+  console.log(`[observability] Phoenix detected — enabling ${modeLabel} telemetry`);
+
   try {
-    console.log("[observability] Setting up OTLP exporter...");
     const exporter = new OTLPTraceExporter({
-      url: "http://localhost:6006/v1/traces",
+      url: `${PHOENIX_URL}/v1/traces`,
     });
 
     const processor = new SimpleSpanProcessor(exporter);

@@ -1,20 +1,27 @@
 import { createMessageHandler, setupPortHandlers } from "~/background/messages";
 import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
+import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
 import { createChromeHandler } from "@kstonekuan/trpc-chrome/adapter";
 import { appRouter } from "~/background/router";
 import { configureLogger } from "~/lib/logger";
 import { setupTelemetry, trace, SpanStatusCode } from "@play-ai/observability";
+import type { Conversation } from "@play-ai/ai/core/types";
+
+type OnMessageListener = Parameters<typeof browser.runtime.onMessage.addListener>[number];
 
 export default defineBackground({
   async main() {
     await configureLogger();
     try {
       await setupTelemetry();
+
       const tracer = trace.getTracer("play-ai-extension");
       const span = tracer.startSpan("service-worker-init");
+
       span.setStatus({ code: SpanStatusCode.OK });
       span.end();
-      const provider = trace.getTracerProvider();
+
+      const provider = trace.getTracerProvider() as BasicTracerProvider;
       await provider.forceFlush();
     } catch (e) {
       console.error("[observability] Failed to setup telemetry:", e);
@@ -29,6 +36,7 @@ export default defineBackground({
     await setupStreamingCleanup();
     setupInstall();
     setupMessaging();
+    setupTelemetryHandler();
     setupPorts();
     setupYouTubeCookies();
     setupTrpc();
@@ -62,7 +70,7 @@ async function setupStreamingCleanup() {
 
   if (streamingMessages && Object.keys(streamingMessages).length > 0) {
     const { conversations } = (await browser.storage.local.get(["conversations"])) as {
-      conversations?: Record<string, any>;
+      conversations?: Record<string, Conversation>;
     };
 
     const updatedConversations = { ...conversations };
@@ -109,6 +117,29 @@ function setupPorts() {
 
 function setupMessaging() {
   browser.runtime.onMessage.addListener(createMessageHandler());
+}
+
+function setupTelemetryHandler() {
+  const listener: OnMessageListener = (message, _, sendResponse) => {
+    if (message.type === "SET_TELEMETRY_ENABLED") {
+      const enabled = message.enabled ?? false;
+
+      browser.storage.local.set({ telemetryEnabled: enabled });
+      if (enabled) {
+        setupTelemetry()
+          .then(() => {
+            console.log("[observability] Telemetry enabled via user toggle");
+          })
+          .catch((e) => {
+            console.error("[observability] Failed to setup telemetry:", e);
+          });
+      }
+      sendResponse({ success: true });
+    }
+    return true;
+  };
+
+  browser.runtime.onMessage.addListener(listener);
 }
 
 function setupTrpc() {
