@@ -10,8 +10,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@opentelemetry/sdk-trace-base": "2.7.1",
-    "@opentelemetry/exporter-trace-otlp-http": "0.218.0",
-    "@arizeai/openinference-vercel": "2.7.5"
+    "@arizeai/openinference-vercel": "2.7.5",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.218.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
+    "@opentelemetry/resources": "^2.7.1",
+    "@opentelemetry/sdk-trace-base": "2.7.1"
   }
 }

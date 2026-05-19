@@ -3,13 +3,19 @@ import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
 import { createChromeHandler } from "@kstonekuan/trpc-chrome/adapter";
 import { appRouter } from "~/background/router";
 import { configureLogger } from "~/lib/logger";
-import { setupTelemetry } from "@play-ai/observability";
+import { setupTelemetry, trace, SpanStatusCode } from "@play-ai/observability";
 
 export default defineBackground({
   async main() {
     await configureLogger();
     try {
-      setupTelemetry();
+      await setupTelemetry();
+      const tracer = trace.getTracer("play-ai-extension");
+      const span = tracer.startSpan("service-worker-init");
+      span.setStatus({ code: SpanStatusCode.OK });
+      span.end();
+      const provider = trace.getTracerProvider();
+      await provider.forceFlush();
     } catch (e) {
       console.error("[observability] Failed to setup telemetry:", e);
     }
@@ -41,6 +47,7 @@ function getDevEnvConfig(): AppConfig | null {
   const provider = baseUrl.includes("anthropic") ? ("anthropic" as const) : ("openai" as const);
 
   return {
+    id: "dev-default",
     provider,
     apiKey: apiKey ?? "",
     baseUrl,

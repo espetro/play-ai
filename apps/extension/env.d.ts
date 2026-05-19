@@ -15,6 +15,7 @@ declare module "*.css" {
 }
 
 interface ImportMetaEnv {
+  readonly DEV?: boolean;
   readonly PROD?: boolean;
   readonly VITE_AI_BASE_URL?: string;
   readonly VITE_AI_API_KEY?: string;
