@@ -18,16 +18,28 @@ import { clearMessages } from "~/lib/storage";
 import { activeStreams } from "./messages/streaming";
 import type { Conversation } from "~/lib/storage";
 import { trace, SpanStatusCode } from "@play-ai/observability";
+import type { AsyncReturnType } from "type-fest";
 
+/** We're just defining this function to circumvent type derivation issues with the overloaded 'browser.tabs.get' function */
+const promisifiedGetTab = async (_: number) => browser.tabs.get(_);
+
+type TabOrNull = AsyncReturnType<typeof promisifiedGetTab> | null;
+type StorageListener = Parameters<typeof browser.storage.onChanged.addListener>[number];
+type OnActivedInfoListener = Parameters<typeof browser.tabs.onActivated.addListener>[number];
+
+interface LocalStorageState {
+  conversations?: Record<string, Conversation>;
+  activeConversationId?: string;
+  streamingMessages?: Record<string, string>;
+}
 export const appRouter = router({
   tabs: router({
     list: procedure.query(async () => {
       return browser.tabs.query({});
     }),
     onActivated: procedure.subscription(async function* ({ signal }) {
-      type TabOrNull = Awaited<ReturnType<typeof browser.tabs.get>> | null;
       yield* chromeEventToAsyncGen<TabOrNull>((cb) => {
-        const listener = (info: { tabId: number; windowId: number }) => {
+        const listener: OnActivedInfoListener = (info) => {
           browser.tabs
             .get(info.tabId)
             .then((tab) => cb(tab))
@@ -52,11 +64,12 @@ export const appRouter = router({
       signal,
     }) {
       yield* chromeEventToAsyncGen<unknown>((cb) => {
-        const listener = (changes: Record<string, any>, area: string) => {
+        const listener: StorageListener = (changes, area) => {
           if (area === "local" && input.key in changes) {
-            cb(changes[input.key].newValue);
+            cb(changes[input.key]?.newValue);
           }
         };
+
         browser.storage.onChanged.addListener(listener);
         return () => browser.storage.onChanged.removeListener(listener);
       }, signal);
@@ -238,11 +251,7 @@ export const appRouter = router({
             "conversations",
             "activeConversationId",
             "streamingMessages",
-          ])) as {
-            conversations?: Record<string, Conversation>;
-            activeConversationId?: string;
-            streamingMessages?: Record<string, string>;
-          };
+          ])) as LocalStorageState;
 
         const updated = { ...conversations };
         delete updated[conversationId];

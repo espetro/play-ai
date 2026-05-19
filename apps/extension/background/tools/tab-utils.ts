@@ -2,6 +2,9 @@ import { getLogger } from "~/lib/logger";
 
 const logger = getLogger(["background", "tabUtils"]);
 
+type TabsOnUpdatedListener = Parameters<typeof browser.tabs.onUpdated.addListener>[number];
+type TabsOnRemovedListener = Parameters<typeof browser.tabs.onRemoved.addListener>[number];
+
 export function waitForTabLoad(
   tabId: number,
   timeoutMs: number,
@@ -27,7 +30,7 @@ export function waitForTabLoad(
     };
     abortSignal?.addEventListener("abort", onAbort, { once: true });
 
-    const onRemoved = (removedTabId: number) => {
+    const onRemoved: TabsOnRemovedListener = (removedTabId) => {
       if (removedTabId === tabId) {
         cleanup();
         reject(new Error("Tab was closed"));
@@ -35,12 +38,12 @@ export function waitForTabLoad(
     };
     browser.tabs.onRemoved.addListener(onRemoved);
 
-    function listener(updatedTabId: number, changeInfo: { status?: string }) {
+    const listener: TabsOnUpdatedListener = (updatedTabId, changeInfo) => {
       if (updatedTabId === tabId && changeInfo.status === "complete") {
         cleanup();
         resolve();
       }
-    }
+    };
     browser.tabs.onUpdated.addListener(listener);
   });
 }
