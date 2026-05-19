@@ -4,9 +4,11 @@ node_modules/
 dist/
 build/
 *.zip
+*.log
 bun.lockb
 .DS_Store
 .env.local
 .osgrep
+.gauge/
 .wxt/
 tmp/
