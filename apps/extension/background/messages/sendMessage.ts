@@ -115,6 +115,18 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
       },
       stopWhen: stepCountIs(5),
       abortSignal: controller.signal,
+      experimental_telemetry: {
+        isEnabled: import.meta.env.DEV,
+        functionId: "chat",
+        metadata: {
+          conversationId,
+          videoId: videoId ?? "none",
+          provider: config.provider,
+          model: config.model,
+        },
+        recordInputs: true,
+        recordOutputs: true,
+      },
     });
 
     for await (const chunk of stream.textStream) {
