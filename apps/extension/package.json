@@ -10,7 +10,8 @@
     "check": "tsgo --noEmit",
     "lint": "oxlint --fix ./",
     "format": "oxfmt --write ./",
-    "test": "echo 'tests not implemented' || echo 0"
+    "test": "echo 'tests not implemented' || echo 0",
+    "test:e2e": "gauge run tests/specs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.64",
@@ -74,6 +75,7 @@
     "@vitejs/plugin-react": "6.0.2",
     "autoprefixer": "10.5.0",
     "babel-plugin-react-compiler": "^1.0.0",
+    "gauge-ts": "^0.9.0",
     "postcss": "8.5.14",
     "react-devtools": "^7.0.1",
     "react-scan": "^0.5.6",

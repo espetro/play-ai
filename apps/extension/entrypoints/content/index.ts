@@ -67,6 +67,7 @@ function watchForAnchor(ui: any) {
       rafId = null;
       const currentAnchor = findAnchor();
       if (!currentAnchor && ui) {
+        mounted = false;
         ui.remove();
       } else if (currentAnchor && !document.querySelector("#play-ai-root")) {
         ensureMounted(ui, observer);
@@ -121,6 +122,7 @@ export default defineContentScript({
     }
 
     const cleanup = onVideoChange(async () => {
+      mounted = false;
       ui.remove();
       if (isWatchPage()) {
         ensureMounted(ui);

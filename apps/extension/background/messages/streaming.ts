@@ -5,7 +5,7 @@ import { $videoId } from "~/lib/storage";
 
 const logger = getLogger(["background", "streaming"]);
 
-const MAX_BROADCASTS_PER_VIDEO_PER_WINDOW = 10;
+const MAX_BROADCASTS_PER_VIDEO_PER_WINDOW = 300;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
 type RateLimitEntry = { count: number; resetAt: number };

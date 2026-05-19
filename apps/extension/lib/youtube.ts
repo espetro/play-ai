@@ -30,5 +30,6 @@ export function onVideoChange(callback: (videoId: string | null) => void) {
 
   return () => {
     window.removeEventListener("yt-navigate-finish", checkVideo);
+    history.pushState = originalPushState;
   };
 }

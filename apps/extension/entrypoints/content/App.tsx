@@ -33,12 +33,11 @@ declare global {
 }
 
 export default function App() {
-  const [videoId, setVideoId] = useState<string | null>(null);
+  const [videoId] = useState<string | null>(extractVideoId());
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const videoIdFromRoute = extractVideoId();
-  setVideoId(videoIdFromRoute);
+  const videoIdFromRoute = videoId;
 
   useBrowserMessageListener("MESSAGE_UPDATE", (request: {
     type: "MESSAGE_UPDATE";
