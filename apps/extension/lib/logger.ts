@@ -3,9 +3,7 @@ import { configure, getConsoleSink, getLogger as _getLogger } from "@logtape/log
 export async function configureLogger() {
   await configure({
     sinks: { console: getConsoleSink() },
-    loggers: [
-      { category: ["play-ai"], sinks: ["console"], lowestLevel: "debug" },
-    ],
+    loggers: [{ category: ["play-ai"], sinks: ["console"], lowestLevel: "debug" }],
   });
 }
 

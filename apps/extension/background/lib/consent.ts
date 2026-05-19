@@ -12,10 +12,7 @@ export async function injectConsentScript(tabId: number): Promise<void> {
   logger.debug("Injected consent script into tab {tabId}", { tabId });
 }
 
-export function waitForConsent(
-  tabId: number,
-  abortSignal?: AbortSignal,
-): Promise<void> {
+export function waitForConsent(tabId: number, abortSignal?: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     const timeoutMs = 15_000;
     let timeout: ReturnType<typeof setTimeout>;
@@ -46,19 +43,24 @@ export function waitForConsent(
       }
     }, timeoutMs);
 
-    const listener = (
-      msg: unknown,
-      sender: Browser.runtime.MessageSender,
-    ) => {
-      const typedMsg = msg as { type: string; cmp?: string; totalClicks?: number; state?: { lifecycle: string }; id?: string; snippetId?: string };
+    const listener = (msg: unknown, sender: Browser.runtime.MessageSender) => {
+      const typedMsg = msg as {
+        type: string;
+        cmp?: string;
+        totalClicks?: number;
+        state?: { lifecycle: string };
+        id?: string;
+        snippetId?: string;
+      };
       if (sender.tab?.id !== tabId) return;
 
       if (typedMsg.type === "autoconsentDone") {
         cleanup();
-        logger.debug(
-          "Consent completed for tab {tabId}: {cmp}, clicks: {clicks}",
-          { tabId, cmp: typedMsg.cmp, clicks: typedMsg.totalClicks },
-        );
+        logger.debug("Consent completed for tab {tabId}: {cmp}, clicks: {clicks}", {
+          tabId,
+          cmp: typedMsg.cmp,
+          clicks: typedMsg.totalClicks,
+        });
         resolve();
         return;
       }
@@ -89,11 +91,15 @@ async function handleEval(
 
   const snippet = evalSnippets[msg.snippetId as keyof typeof evalSnippets];
   if (!snippet) {
-    await browser.tabs.sendMessage(tabId, {
-      type: "evalResp",
-      id: msg.id,
-      result: undefined,
-    }, { frameId });
+    await browser.tabs.sendMessage(
+      tabId,
+      {
+        type: "evalResp",
+        id: msg.id,
+        result: undefined,
+      },
+      { frameId },
+    );
     return;
   }
 
@@ -113,10 +119,14 @@ async function handleEval(
       id: msg.snippetId,
       error: String(err),
     });
-    await browser.tabs.sendMessage(tabId, {
-      type: "evalResp",
-      id: msg.id,
-      result: undefined,
-    }, { frameId });
+    await browser.tabs.sendMessage(
+      tabId,
+      {
+        type: "evalResp",
+        id: msg.id,
+        result: undefined,
+      },
+      { frameId },
+    );
   }
 }

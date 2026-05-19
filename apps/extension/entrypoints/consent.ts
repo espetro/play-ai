@@ -19,7 +19,15 @@ export default defineUnlistedScript(() => {
       enableFilterList: false,
       enableHeuristicDetection: false,
       enableHeuristicAction: false,
-      logs: { errors: true, lifecycle: false, rulesteps: false, detectionsteps: false, evals: false, messages: false, waits: false },
+      logs: {
+        errors: true,
+        lifecycle: false,
+        rulesteps: false,
+        detectionsteps: false,
+        evals: false,
+        messages: false,
+        waits: false,
+      },
     },
     {
       autoconsent: autoconsent as RuleBundle["autoconsent"],

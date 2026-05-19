@@ -3,10 +3,16 @@ import { getConfig, setConfig, type AppConfig } from "~/lib/storage";
 import { createChromeHandler } from "@kstonekuan/trpc-chrome/adapter";
 import { appRouter } from "~/background/router";
 import { configureLogger } from "~/lib/logger";
+import { setupTelemetry } from "@play-ai/observability";
 
 export default defineBackground({
   async main() {
     await configureLogger();
+    try {
+      setupTelemetry();
+    } catch (e) {
+      console.error("[observability] Failed to setup telemetry:", e);
+    }
 
     // Ensure clicking the toolbar button always opens the side panel.
     // Called here (not only in onInstalled) so it applies on every SW restart
@@ -120,7 +126,7 @@ async function setupYouTubeCookies() {
         path: "/",
         secure: true,
         sameSite: "lax",
-      })
-    )
+      }),
+    ),
   );
 }
