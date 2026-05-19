@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { getConfig } from "~/lib/storage";
+import { useMountEffect } from "~/ui/hooks/useBrowserMessageListener";
 
 export default function Root() {
   const navigate = useNavigate();
   const [, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useMountEffect(() => {
     getConfig().then((cfg) => {
       setConfig(cfg);
       if (!cfg) {
@@ -15,7 +16,7 @@ export default function Root() {
       }
       setLoading(false);
     });
-  }, [navigate]);
+  });
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
 import { fetchYouTubeTranscript, fetchCaptionTracksFromHtml, type CaptionTrack } from "~/lib/youtube-transcript";
@@ -8,6 +8,8 @@ import type { ChatMessage } from "~/lib/storage";
 import type { Browser } from "wxt/browser";
 import type { TranscriptResponse } from "~/lib/messaging";
 import { getLogger } from "~/lib/logger";
+import { useBrowserMessageListener, useMountEffect } from "~/ui/hooks/useBrowserMessageListener";
+import { useYouTubeNavigation } from "~/ui/hooks/useYouTubeNavigation";
 
 const logger = getLogger(["content", "transcript"]);
 
@@ -35,45 +37,36 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const id = extractVideoId();
-    setVideoId(id);
+  const videoIdFromRoute = extractVideoId();
+  setVideoId(videoIdFromRoute);
 
-    const handleStateUpdate = (request: {
-      type: string;
-      videoId: string;
-      message: ChatMessage;
-    }) => {
-      if (request.type === "MESSAGE_UPDATE" && request.videoId === id) {
-        const msg = request.message as ChatMessage;
-        setMessages((prev) => {
-          const existing = prev.find((m) => m.id === msg.id);
-          if (existing) {
-            return prev.map((m) => (m.id === msg.id ? { ...msg, timestamp: msg.timestamp } : m));
-          }
-          return [...prev, msg];
-        });
-      }
-    };
+  useBrowserMessageListener("MESSAGE_UPDATE", (request: {
+    type: "MESSAGE_UPDATE";
+    videoId: string;
+    message: ChatMessage;
+  }) => {
+    if (request.videoId === videoIdFromRoute) {
+      const msg = request.message as ChatMessage;
+      setMessages((prev) => {
+        const existing = prev.find((m) => m.id === msg.id);
+        if (existing) {
+          return prev.map((m) => (m.id === msg.id ? { ...msg, timestamp: msg.timestamp } : m));
+        }
+        return [...prev, msg];
+      });
+    }
+  });
 
-    browser.runtime.onMessage.addListener(handleStateUpdate);
-    return () => {
-      browser.runtime.onMessage.removeListener(handleStateUpdate);
-    };
-  }, []);
-
-  useEffect(() => {
+  useMountEffect(() => {
     $videoId.setValue(extractVideoId());
-    const handleNavigation = () => $videoId.setValue(extractVideoId());
-    window.addEventListener("yt-navigate-finish", handleNavigation);
-    return () => window.removeEventListener("yt-navigate-finish", handleNavigation);
-  }, []);
+  });
 
-  useEffect(() => {
+  useYouTubeNavigation((videoId) => $videoId.setValue(videoId));
+
+  useMountEffect(() => {
     const getValidTracks = async (): Promise<CaptionTrack[] | null> => {
       const currentVideoId = extractVideoId();
       const player = window.ytInitialPlayerResponse;
-      // Guard against SPA navigation race: reject stale player response
       if (player?.videoDetails?.videoId && player.videoDetails.videoId !== currentVideoId) {
         logger.warn(
           "SPA race detected: stale player response (playerVideoId={playerVideoId}, currentVideoId={currentVideoId})",
@@ -83,7 +76,6 @@ export default function App() {
       }
       let tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
       if (!tracks?.length) {
-        // SPA fallback: poll for ytInitialPlayerResponse to be populated
         let elapsed = 0;
         while (elapsed < 3000) {
           await new Promise<void>((r) => setTimeout(r, 200));
@@ -110,7 +102,6 @@ export default function App() {
           return null;
         }
       }
-      // Prefer manually-created over auto-generated (asr), then English first
       const sorted = [...tracks].sort((a, b) => {
         const aIsAsr = a.kind === "asr" ? 1 : 0;
         const bIsAsr = b.kind === "asr" ? 1 : 0;
@@ -150,7 +141,7 @@ export default function App() {
       removeCheckHandler();
       removeFetchHandler();
     };
-  }, []);
+  });
 
   const handleSendMessage = async (content: string) => {
     if (!videoId) return;

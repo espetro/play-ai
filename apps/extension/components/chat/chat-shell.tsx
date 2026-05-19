@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { ChatMessage, type Message } from "./chat-message";
 import { ChatInput } from "./chat-input";
@@ -12,9 +12,19 @@ interface ChatShellProps {
 export function ChatShell({ messages, onSendMessage, isLoading }: ChatShellProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Legitimate DOM side-effect: auto-scroll to bottom when new messages arrive.
+  // Stable dep (messages.length) avoids unnecessary re-renders; useEffectEvent
+  // stabilizes the callback so it can safely reference messages without circular deps.
+  const scrollToBottom = useEffectEvent(function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  });
+
+  useEffect(
+    function triggerScroll() {
+      scrollToBottom();
+    },
+    [messages.length],
+  );
 
   return (
     <div className="flex h-full flex-col gap-4">

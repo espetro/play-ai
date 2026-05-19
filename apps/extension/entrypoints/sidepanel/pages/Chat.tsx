@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ChatContainer } from "~/ui/components";
 import { VideoInfo } from "~/ui/components";
 import {
@@ -8,14 +8,12 @@ import {
   $activeConfigId,
   $activeConversationId,
   $streamingMessages,
-  getActiveConfig,
 } from "~/lib/storage";
 import { useStorageItem } from "~/ui/hooks/useStorageItem";
+import { useTranscriptStatus } from "~/ui/hooks/useTranscriptStatus";
 import { sendMessage } from "~/lib/messaging";
 import { trpcClient } from "~/lib/trpc";
-import type { ChatMessage, BackgroundResponse, Conversation } from "@play-ai/ai/core/types";
-
-type TranscriptStatus = "idle" | "checking" | "available" | "unavailable";
+import type { ChatMessage, BackgroundResponse } from "@play-ai/ai/core/types";
 
 export default function Chat() {
   const currentTabVideoId = useStorageItem($videoId, null);
@@ -24,18 +22,12 @@ export default function Chat() {
   const streamingMessages = useStorageItem($streamingMessages, {});
   const configs = useStorageItem($configs, []);
   const activeConfigId = useStorageItem($activeConfigId, null);
-  const [config, setConfig] = useState<any>(null);
-  const [transcriptStatus, setTranscriptStatus] = useState<TranscriptStatus>("idle");
   const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
 
-  useEffect(() => {
-    if (activeConfigId && configs.length > 0) {
-      const activeConfig = configs.find((c) => c.id === activeConfigId);
-      setConfig(activeConfig || null);
-    } else {
-      setConfig(null);
-    }
-  }, [activeConfigId, configs]);
+  const config = useMemo(
+    () => configs.find((c) => c.id === activeConfigId) ?? null,
+    [configs, activeConfigId],
+  );
 
   const handleAddOptimisticMessage = useCallback((message: ChatMessage) => {
     setOptimisticMessages((prev) => [...prev, message]);
@@ -51,24 +43,7 @@ export default function Chat() {
   const conversationVideoId = activeConversation?.videoId;
   const isCurrentTab = conversationVideoId === currentTabVideoId;
 
-  useEffect(() => {
-    const videoIdToCheck = currentTabVideoId ?? conversationVideoId;
-    if (!videoIdToCheck || videoIdToCheck === "_default") {
-      setTranscriptStatus("idle");
-      return;
-    }
-    setTranscriptStatus("checking");
-    sendMessage<BackgroundResponse>({
-      type: "CHECK_TRANSCRIPT",
-      payload: { videoId: videoIdToCheck },
-    })
-      .then((res) => {
-        if (res && res.type === "TRANSCRIPT_STATUS") {
-          setTranscriptStatus(res.payload.available ? "available" : "unavailable");
-        }
-      })
-      .catch(() => setTranscriptStatus("unavailable"));
-  }, [conversationVideoId, currentTabVideoId]);
+  const { status: transcriptStatus } = useTranscriptStatus(currentTabVideoId ?? conversationVideoId ?? null);
 
   const handleSendMessage = async (content: string, optimisticId: string) => {
     try {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -10,23 +10,15 @@ import { ProviderSetupForm } from "~/ui/components/provider-setup-form";
 export default function Settings() {
   const configs = useStorageItem($configs, []);
   const activeConfigId = useStorageItem($activeConfigId, null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(configs.length === 0);
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (configs.length === 0) {
-      setFormOpen(true);
-    }
-  }, [configs.length]);
 
   const handleSave = async (newConfig: AppConfig) => {
     await sendMessage({ type: "SET_CONFIG", payload: newConfig });
-    setFormOpen(false);
     setEditingConfigId(null);
   };
 
   const handleCancel = () => {
-    setFormOpen(false);
     setEditingConfigId(null);
   };
 
