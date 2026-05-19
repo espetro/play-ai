@@ -1,28 +1,8 @@
 # play-ai extension
 
-WXT browser extension (Chrome/Firefox/Edge) with React UI. Local project rules — see root `CLAUDE.md` for global rules.
+WXT browser extension (Chrome/Firefox/Edge) with React UI. See root `CLAUDE.md` for global rules (package manager, browser APIs, design system summary, @mantine/hooks).
 
-## Package manager
-
-Always use `bun`. Check `packageManager` in root `package.json`.
-
-## Browser testing with agent-browser
-
-NEVER use Playwright directly. Use the `agent-browser` CLI (not `dev-browser`).
-
-### YouTube consent bypass
-
-Before navigating to any `youtube.com` URL, inject the SOCS cookie via the `--state` flag at browser launch. This file uses Playwright's storageState format with the SOCS cookie (Reject All behavior) + CONSENT fallback.
-
-```bash
-agent-browser --extension apps/extension/.output/chrome-mv3 \
-  --state scripts/youtube-cookies.json \
-  open "https://www.youtube.com/watch?v=<videoId>"
-```
-
-The SOCS cookie must be loaded before any navigation to prevent the "Before you continue" interstitial from appearing.
-
-### Extension integration testing with Gauge
+## Extension integration testing with Gauge
 
 Run E2E tests using Gauge (Markdown-based test framework with TypeScript step implementations):
 
@@ -48,24 +28,7 @@ The `@BeforeSuite` hook enforces a production build before test execution.
 
 All UI components live in `apps/extension/components/`. Single-app monorepo, so `packages/ui` was consolidated into the extension. See memory for details.
 
-## Extension APIs
-
-Always use the WXT `browser` global instead of `chrome.*` — it resolves to Firefox's native API or falls back to `chrome`, enabling cross-browser compatibility from the start.
-
-- `browser` is auto-imported in all WXT entrypoints — no import statement needed
-- For type annotations, import `type { Browser } from 'wxt/browser'`
-- Use Promise-based APIs (async/await) — the polyfill normalizes callbacks to Promises
-- If a feature is **Chrome/Edge only** (e.g. `scripting.executeScript` on Firefox MV3), use `browser.*` still but document the limitation with a comment
-
-## Documentation
-
-> For full details, see the linked docs. This file is a quick reference.
-
-- **Architecture**: `docs/architecture.md` — Layers, data flow, communication patterns, extension points
-- **Dev Guidelines**: `docs/dev-guidelines.md` — Design system rules, component workflow, hooks policy, naming conventions
-- **PRD**: `docs/prd.md` — Product requirements, target users, feature list, success metrics
-
-## Design System Rules (summary)
+## Design System Rules
 
 Full details: `docs/dev-guidelines.md`
 
@@ -108,10 +71,3 @@ All logs are tagged `[play-ai]` prefix for easy filtering.
 - `lib/youtube-transcript.ts` — InnerTube/timed-text fetch, parsing, format selection
 
 Add logging to new areas following the same pattern: `getLogger(["layer", "area"])`.
-
-## @mantine/hooks
-
-Installed. 70+ headless hooks (zero deps). Check before creating custom hooks.
-Key hooks: useLocalStorage, useDebouncedValue, useMutationObserver, useIntersection, useHotkeys, useClipboard, useDisclosure, useToggle, useElementSize
-Import: `import { useDisclosure } from '@mantine/hooks'`
-Full list: https://mantine.dev/hooks/package/
