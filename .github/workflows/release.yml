@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: apps/extension/.output/play-ai-extension-0.1.0-${{ matrix.browser }}.zip
+          path: apps/extension/.output/play-ai-extension-0.2.0-${{ matrix.browser }}.zip
           retention-days: 3
           if-no-files-found: error
 
