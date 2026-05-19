@@ -41,29 +41,30 @@ export function createTranscriptTool(videoId: string) {
         return formatForPrompt(cached);
       }
 
-      const tabs = await browser.tabs.query({
-        url: `*://*.youtube.com/watch?v=${videoId}*`,
-      });
-      const tab = tabs[0];
+      const [tab] = await browser.tabs.query({ url: `*://*.youtube.com/watch?v=${videoId}*` });
+
       if (!tab?.id) {
         logger.warn("No tab found for video {videoId}", { videoId });
         throw new Error("YouTube video tab not found. Make sure the video tab is still open.");
       }
+
       let response: TranscriptResponse;
       const existing = inFlightRequests.get(videoId);
+
       if (existing) {
         logger.debug("Returning in-flight request for video {videoId}", { videoId });
         response = await existing;
       } else {
         const promise = (async () => {
           try {
-            return await browser.tabs.sendMessage<TranscriptResponse>(tab.id!, {
+            return await browser.tabs.sendMessage<Partial<TranscriptResponse>>(tab.id as number, {
               type: "FETCH_TRANSCRIPT",
             });
           } finally {
             inFlightRequests.delete(videoId);
           }
         })();
+
         inFlightRequests.set(videoId, promise);
         response = await promise;
       }
@@ -74,11 +75,14 @@ export function createTranscriptTool(videoId: string) {
           "No transcript available for this video. It may not have subtitles enabled.",
         );
       }
+
       await setTranscriptCache(videoId, response.lines);
+
       logger.debug("Cached transcript for video {videoId}, lines={count}", {
         videoId,
         count: response.lines.length,
       });
+
       return formatForPrompt(response.lines);
     },
   });

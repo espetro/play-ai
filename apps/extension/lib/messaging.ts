@@ -19,10 +19,11 @@ export type MessageType =
   | { type: "FETCH_TRANSCRIPT" }
   | { type: "CHECK_TRANSCRIPT"; payload: { videoId: string } };
 
-export type TranscriptResponse = {
+export interface TranscriptResponse {
+  type?: MessageType["type"];
   available: boolean;
   lines: TranscriptLine[] | null;
-};
+}
 
 // Use the callback-based API for reliability across all Chrome versions and MV3
 // service worker lifecycle edge cases. The Promise-based sendMessage (Chrome 116+)

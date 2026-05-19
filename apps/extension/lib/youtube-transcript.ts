@@ -3,6 +3,14 @@ import { getLogger } from "~/lib/logger";
 
 const logger = getLogger(["content", "youtubeTranscript"]);
 
+interface YouTubeSiteWindow extends Window {
+  ytcfg?: {
+    data_?: {
+      INNERTUBE_API_KEY?: string;
+    };
+  };
+}
+
 export interface CaptionTrack {
   languageCode: string;
   baseUrl: string;
@@ -41,13 +49,16 @@ function parseJson3Events(
     .filter((r) => r.text.length > 0);
 }
 
+const matchHasTimestamps = <V extends string>(_: V[]): _ is [V, V, V, V, ...V[]] => _.length > 4;
+
 function parseCaptionXml(xml: string): TranscriptLine[] {
   const lines: TranscriptLine[] = [];
 
   // Try format3 (<p t="..." d="...">)
   const format3Regex = /<p\s+[^>]*?t="(\d+)"[^>]*?d="(\d+)"[^>]*?>([^<]*)<\/p>/g;
-  let match;
-  while ((match = format3Regex.exec(xml)) !== null) {
+  let match: RegExpExecArray | null;
+
+  while ((match = format3Regex.exec(xml)) !== null && matchHasTimestamps(match)) {
     const start = parseInt(match[1], 10) / 1000;
     const duration = parseInt(match[2], 10) / 1000;
     const text = decodeHTMLEntities(match[3]).trim();
@@ -59,7 +70,7 @@ function parseCaptionXml(xml: string): TranscriptLine[] {
 
   // Fallback to legacy format (<text start="..." dur="...">)
   const legacyRegex = /<text\s+[^>]*?start="([0-9.]+)"[^>]*?dur="([0-9.]+)"[^>]*?>([^<]*)<\/text>/g;
-  while ((match = legacyRegex.exec(xml)) !== null) {
+  while ((match = legacyRegex.exec(xml)) !== null && matchHasTimestamps(match)) {
     const start = parseFloat(match[1]);
     const duration = parseFloat(match[2]);
     const text = decodeHTMLEntities(match[3]).trim();
@@ -250,7 +261,7 @@ async function fetchViaInnerTube(videoId: string): Promise<TranscriptLine[] | nu
   try {
     // Prefer ytcfg if available; fall back to HTML regex (working extractor approach)
     const apiKey: string | null =
-      (window as any).ytcfg?.data_?.INNERTUBE_API_KEY ?? extractApiKeyFromHtml();
+      (window as YouTubeSiteWindow).ytcfg?.data_?.INNERTUBE_API_KEY ?? extractApiKeyFromHtml();
 
     const url = apiKey
       ? `/youtubei/v1/player?key=${encodeURIComponent(apiKey)}&prettyPrint=false`
