@@ -22,22 +22,27 @@ agent-browser --extension apps/extension/.output/chrome-mv3 \
 
 The SOCS cookie must be loaded before any navigation to prevent the "Before you continue" interstitial from appearing.
 
-### Extension testing
+### Extension integration testing with Gauge
 
-Run `scripts/test-extension.sh` to launch a full test session against YouTube or Invidious:
+Run E2E tests using Gauge (Markdown-based test framework with TypeScript step implementations):
 
 ```bash
-# Test YouTube (embedded overlay + sidebar API)
-bash scripts/test-extension.sh --youtube
+# Install Gauge CLI once
+brew install gauge && gauge install ts
 
-# Test Invidious fallback (different UI, verify sidebar API compat)
-bash scripts/test-extension.sh --invidious
+# Run integration tests
+bun run test:e2e
 ```
 
-### Test targets
+Tests verify:
+- Extension UI mounts correctly on YouTube with consent bypass
+- Transcript availability detection works
+- Extension remounts properly after SPA navigation
 
-- **YouTube**: `https://www.youtube.com/watch?v=ypzNhwpmOD4`
-- **Invidious**: `https://inv.nadeko.net/watch?v=FDXWH51IJBY` (fallback, tests sidebar API on alternative video platform)
+Test specs: `tests/specs/extension-youtube.spec`
+Step implementations: `tests/step_implementations/extension_steps.ts`
+
+The `@BeforeSuite` hook enforces a production build before test execution.
 
 ## UI Architecture
 

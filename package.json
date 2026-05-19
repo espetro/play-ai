@@ -9,8 +9,6 @@
   ],
   "scripts": {
     "dev": "turbo dev",
-    "dev:youtube": "bun run scripts/test-extension.ts --youtube",
-    "dev:invidious": "bun run scripts/test-extension.ts --invidious",
     "build": "turbo build",
     "check": "turbo check",
     "lint": "turbo lint",

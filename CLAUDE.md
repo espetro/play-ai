@@ -8,7 +8,7 @@ YouTube AI chat browser extension (WXT + React, targets Chrome/Firefox/Edge). Ex
 
 **Build extension**: `cd apps/extension && bun run build`. Output: `.output/chrome-mv3/` (and `-firefox` variant).
 
-**Test extension**: `bash scripts/test-extension.sh --youtube` or `--invidious` — uses agent-browser, injects YouTube consent cookies via `scripts/youtube-cookies.json`.
+**Test extension**: `cd apps/extension && bun run test:e2e` — Gauge-based integration tests using agent-browser with YouTube consent bypass.
 
 ## Docs & Guidelines
 
