@@ -16,7 +16,7 @@ export function useTranscriptStatus(
 
   const prevVideoIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  useEffect(function checkTranscriptOnVideoIdChange() {
     const effectiveVideoId = videoId ?? "_default";
 
     if (effectiveVideoId === "_default" || effectiveVideoId === prevVideoIdRef.current) {

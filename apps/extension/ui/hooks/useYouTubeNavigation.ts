@@ -23,8 +23,10 @@ export function useYouTubeNavigation(onNavigate: (videoId: string) => void): voi
     }
   }, [onNavigate]);
 
-  useMountEffect(() => {
+  useMountEffect(function subscribeToYouTubeNavigation() {
     window.addEventListener("yt-navigate-finish", handleNavigation);
-    return () => window.removeEventListener("yt-navigate-finish", handleNavigation);
+    return function unsubscribeFromYouTubeNavigation() {
+      window.removeEventListener("yt-navigate-finish", handleNavigation);
+    };
   });
 }

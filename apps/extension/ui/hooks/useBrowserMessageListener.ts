@@ -20,7 +20,7 @@ export function useBrowserMessageListener<TMessage extends { type: string }>(
   type: TMessage["type"],
   handler: (message: TMessage) => void,
 ): void {
-  useMountEffect(() => {
+  useMountEffect(function registerBrowserMessageListener() {
     const listener = (
       message: unknown,
       _sender: Browser.runtime.MessageSender,
@@ -30,6 +30,8 @@ export function useBrowserMessageListener<TMessage extends { type: string }>(
       }
     };
     browser.runtime.onMessage.addListener(listener);
-    return () => browser.runtime.onMessage.removeListener(listener);
+    return function unregisterBrowserMessageListener() {
+      browser.runtime.onMessage.removeListener(listener);
+    };
   });
 }

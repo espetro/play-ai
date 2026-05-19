@@ -5,7 +5,7 @@ import type { Message } from '~/lib/schemas';
 
 export function useChatStream(messages: Message[]) {
   // Start/restart subscription when a new message is added
-  useEffect(() => {
+  useEffect(function subscribeToChatStream() {
     if (messages.length === 0) return;
 
     const lastMessage = messages[messages.length - 1];
@@ -28,7 +28,9 @@ export function useChatStream(messages: Message[]) {
       },
     );
 
-    return () => sub.unsubscribe();
+    return function unsubscribeFromChatStream() {
+      sub.unsubscribe();
+    };
   }, [messages.length]);
 
   return useSyncExternalStore(chatStore.subscribe, chatStore.getSnapshot, chatStore.getSnapshot);
