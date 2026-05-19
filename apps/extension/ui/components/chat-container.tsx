@@ -191,7 +191,7 @@ export function ChatContainerComponent({
                 </ModelSelector>
               )}
             </PromptInputTools>
-            <PromptInputSubmit status={isStreaming ? "streaming" : "idle"} />
+            <PromptInputSubmit status={isStreaming ? "streaming" : "ready"} />
           </PromptInputFooter>
         </PromptInput>
       </div>

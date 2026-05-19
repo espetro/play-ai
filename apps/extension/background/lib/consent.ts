@@ -4,6 +4,19 @@ import { getLogger } from "~/lib/logger";
 
 const logger = getLogger(["background", "consent"]);
 
+interface TypedMessage {
+  type: string;
+  cmp?: string;
+  totalClicks?: number;
+  state?: { lifecycle: string };
+  id?: string;
+  snippetId?: string;
+}
+
+type TypedMessageIds = Pick<TypedMessage, "id" | "snippetId">;
+
+type MessageSender = Browser.runtime.MessageSender;
+
 export async function injectConsentScript(tabId: number): Promise<void> {
   await browser.scripting.executeScript({
     target: { tabId },
@@ -43,37 +56,29 @@ export function waitForConsent(tabId: number, abortSignal?: AbortSignal): Promis
       }
     }, timeoutMs);
 
-    const listener = (msg: unknown, sender: Browser.runtime.MessageSender) => {
-      const typedMsg = msg as {
-        type: string;
-        cmp?: string;
-        totalClicks?: number;
-        state?: { lifecycle: string };
-        id?: string;
-        snippetId?: string;
-      };
+    const listener = <T extends TypedMessage>(msg: T, sender: MessageSender) => {
       if (sender.tab?.id !== tabId) return;
 
-      if (typedMsg.type === "autoconsentDone") {
+      if (msg.type === "autoconsentDone") {
         cleanup();
         logger.debug("Consent completed for tab {tabId}: {cmp}, clicks: {clicks}", {
           tabId,
-          cmp: typedMsg.cmp,
-          clicks: typedMsg.totalClicks,
+          cmp: msg.cmp,
+          clicks: msg.totalClicks,
         });
         resolve();
         return;
       }
 
-      if (typedMsg.type === "report" && typedMsg.state?.lifecycle === "nothingDetected") {
+      if (msg.type === "report" && msg.state?.lifecycle === "nothingDetected") {
         cleanup();
         logger.debug("No consent banner detected for tab {tabId}", { tabId });
         resolve();
         return;
       }
 
-      if (typedMsg.type === "eval") {
-        handleEval({ id: typedMsg.id!, snippetId: typedMsg.snippetId! }, sender);
+      if (msg.type === "eval") {
+        handleEval({ id: msg.id, snippetId: msg.snippetId }, sender);
       }
     };
 
@@ -81,10 +86,7 @@ export function waitForConsent(tabId: number, abortSignal?: AbortSignal): Promis
   });
 }
 
-async function handleEval(
-  msg: { id: string; snippetId: string },
-  sender: Browser.runtime.MessageSender,
-): Promise<void> {
+async function handleEval(msg: TypedMessageIds, sender: MessageSender): Promise<void> {
   const tabId = sender.tab?.id;
   const frameId = sender.frameId;
   if (tabId === undefined || frameId === undefined) return;

@@ -6,21 +6,26 @@ interface CacheEntry<T> {
   notifiers: Set<() => void>;
 }
 
-const cache = new WeakMap<WxtStorageItem<any, {}>, CacheEntry<any>>();
+const cache = new WeakMap<WxtStorageItem<unknown, {}>, CacheEntry<unknown>>();
 
 function getEntry<T>(item: WxtStorageItem<T, {}>, fallback: T): CacheEntry<T> {
-  let entry = cache.get(item) as CacheEntry<T> | undefined;
-  if (!entry) {
-    entry = { value: fallback, notifiers: new Set() };
-    cache.set(item, entry);
-    item.getValue().then((stored) => {
-      if (stored !== null && stored !== undefined) {
-        entry!.value = stored;
-        entry!.notifiers.forEach((n) => n());
-      }
-    });
+  const entry = cache.get(item) as CacheEntry<T> | undefined;
+
+  if (entry) {
+    return entry;
   }
-  return entry;
+
+  const entryFallback: CacheEntry<T> = { value: fallback, notifiers: new Set() };
+  cache.set(item, entryFallback);
+
+  item.getValue().then((stored) => {
+    if (stored !== null && stored !== undefined) {
+      entryFallback.value = stored;
+      entryFallback?.notifiers.forEach((n) => n());
+    }
+  });
+
+  return entryFallback;
 }
 
 export function useStorageItem<T>(item: WxtStorageItem<T, {}>, fallback: T): T {

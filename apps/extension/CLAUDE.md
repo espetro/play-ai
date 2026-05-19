@@ -41,6 +41,29 @@ Full details: `docs/dev-guidelines.md`
 6. **Default exports required**: All custom components (`ui/components/`, `components/chat/`) MUST export a default in addition to any named export. This enables `lazy(() => import('<path>'))` without a `.then()` wrapper
 7. **no-use-effect skill**: Apply `no-use-effect` skill when building. Use @mantine/hooks replacements (useEventListener, useLocalStorage, etc.) over raw useEffect
 
+## Type Derivation from API Signatures
+
+Prefer deriving types from the SDK/API you're using rather than defining custom interfaces. This keeps types in sync with the actual API.
+
+**Gold standard pattern:**
+```typescript
+// Derive listener types from the browser API signature
+type StorageListener = Parameters<typeof browser.storage.onChanged.addListener>[number];
+type OnActivedInfoListener = Parameters<typeof browser.tabs.onActivated.addListener>[number];
+type OnMessageListener = Parameters<typeof browser.runtime.onMessage.addListener>[number];
+type OnConnectListener = Parameters<typeof browser.runtime.onConnect.addListener>[number];
+```
+
+**When to use this pattern:**
+- Browser extension APIs (browser.tabs, browser.storage, browser.runtime)
+- Any SDK where the type is already defined in the library
+
+**When NOT to use:**
+- Generic helper functions that need to handle multiple types (e.g., `useBrowserMessageListener` with `TMessage extends { type: string }`)
+- Consent message types that extend base types with domain-specific fields
+
+**Why:** Custom interfaces can drift from the actual API. Using `Parameters<typeof ...>[number]` guarantees type safety by construction.
+
 ## Logging with LogTape
 
 LogTape is configured automatically in both the background (service worker) and content script entrypoints. Use it for debugging, error tracking, and observability.

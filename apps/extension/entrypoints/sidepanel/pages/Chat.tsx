@@ -97,7 +97,7 @@ export default function Chat() {
 
   const handleFetchModels = async (): Promise<string[]> => {
     try {
-      return await trpcClient.config.getModels.query();
+      return await trpcClient.config.getModels.query({});
     } catch {
       // ignore
     }

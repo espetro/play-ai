@@ -20,7 +20,11 @@ import {
 
 type SendMessageMessage = Extract<BackgroundMessage, { type: "SEND_MESSAGE" }>;
 
-import { activePorts } from "./index";
+interface LocalStorageState {
+  conversations?: Record<string, Conversation>;
+  configs?: AppConfig[];
+  activeConfigId?: string | null;
+}
 
 export async function sendMessageHandler(message: SendMessageMessage): Promise<BackgroundResponse> {
   const { conversationId, content } = message.payload;
@@ -28,11 +32,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     "conversations",
     "configs",
     "activeConfigId",
-  ])) as {
-    conversations?: Record<string, Conversation>;
-    configs?: AppConfig[];
-    activeConfigId?: string | null;
-  };
+  ])) as LocalStorageState;
 
   const configList = configs ?? [];
   const config = activeConfigId ? configList.find((c) => c.id === activeConfigId) : null;
