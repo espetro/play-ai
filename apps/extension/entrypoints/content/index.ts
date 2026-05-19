@@ -28,6 +28,21 @@ function isWatchPage(): boolean {
   return new URLSearchParams(window.location.search).has("v");
 }
 
+let mounted = false;
+
+function ensureMounted(ui: { mount: () => void; remove: () => void; _anchorObserver?: MutationObserver }, observer?: MutationObserver) {
+  if (mounted) return;
+  try {
+    ui.mount();
+    mounted = true;
+    if (observer) {
+      observer.disconnect();
+    }
+  } catch (error) {
+    console.warn("[play-ai]", error);
+  }
+}
+
 function watchForAnchor(ui: any) {
   if (!isWatchPage()) {
     return;
@@ -54,11 +69,7 @@ function watchForAnchor(ui: any) {
       if (!currentAnchor && ui) {
         ui.remove();
       } else if (currentAnchor && !document.querySelector("#play-ai-root")) {
-        try {
-          ui.mount();
-        } catch (error) {
-          console.warn("[play-ai]", error);
-        }
+        ensureMounted(ui, observer);
       }
     });
   });
@@ -105,22 +116,14 @@ export default defineContentScript({
     });
 
     if (isWatchPage()) {
-      try {
-        ui.mount();
-      } catch (error) {
-        console.warn("[play-ai]", error);
-      }
+      ensureMounted(ui);
       await updateVideoId();
     }
 
     const cleanup = onVideoChange(async () => {
       ui.remove();
       if (isWatchPage()) {
-        try {
-          ui.mount();
-        } catch (error) {
-          console.warn("[play-ai]", error);
-        }
+        ensureMounted(ui);
         await updateVideoId();
       }
     });

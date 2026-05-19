@@ -85,6 +85,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
   const controller = new AbortController();
   const activeStream: ActiveStream = {
     conversationId,
+    videoId: isVideoContext ? videoId : undefined,
     partialContent: "",
     controller,
   };
@@ -156,7 +157,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     });
 
     activeStreams.delete(conversationId);
-    await broadcastStateUpdate();
+    await broadcastStateUpdate(isVideoContext ? videoId : undefined);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       activeStreams.delete(conversationId);
@@ -185,7 +186,7 @@ export async function sendMessageHandler(message: SendMessageMessage): Promise<B
     await browser.storage.local.set({ streamingMessages });
 
     activeStreams.delete(conversationId);
-    await broadcastStateUpdate();
+    await broadcastStateUpdate(isVideoContext ? videoId : undefined);
   }
 
   return { type: "CHAT_RESPONSE", payload: assistantMessage };

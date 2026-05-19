@@ -29,8 +29,7 @@ export function useChatStream(messages: Message[]) {
     );
 
     return () => sub.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(messages)]);
+  }, [messages.length]);
 
   return useSyncExternalStore(chatStore.subscribe, chatStore.getSnapshot, chatStore.getSnapshot);
 }

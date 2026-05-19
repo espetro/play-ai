@@ -6,7 +6,10 @@ import { getTranscriptCache, setTranscriptCache } from "~/background/storage";
 import type { TranscriptResponse } from "~/lib/messaging";
 import { getLogger } from "~/lib/logger";
 
-const logger = getLogger(["background", "transcriptTool"]);
+const logger = getLogger(["background", "tools", "transcript"]);
+
+// In-flight request dedup keyed by videoId — prevents concurrent requests for the same video
+const inFlightRequests = new Map<string, Promise<TranscriptResponse>>();
 
 function formatForPrompt(lines: TranscriptLine[]): string {
   return lines
@@ -46,24 +49,35 @@ export function createTranscriptTool(videoId: string) {
         logger.warn("No tab found for video {videoId}", { videoId });
         throw new Error("YouTube video tab not found. Make sure the video tab is still open.");
       }
-      try {
-        const response = await browser.tabs.sendMessage<TranscriptResponse>(tab.id!, {
-          type: "FETCH_TRANSCRIPT",
-        });
-        if (!response?.available || !response.lines?.length) {
-          logger.warn("No transcript available in response for video {videoId}", { videoId });
-          throw new Error("No transcript available for this video. It may not have subtitles enabled.");
-        }
-        await setTranscriptCache(videoId, response.lines);
-        logger.debug("Cached transcript for video {videoId}, lines={count}", {
-          videoId,
-          count: response.lines.length,
-        });
-        return formatForPrompt(response.lines);
-      } catch (err) {
-        logger.error("tabs.sendMessage to content script failed: {error}", { error: err });
-        throw new Error("Could not reach the video tab to fetch transcript.");
+      let response: TranscriptResponse;
+      const existing = inFlightRequests.get(videoId);
+      if (existing) {
+        logger.debug("Returning in-flight request for video {videoId}", { videoId });
+        response = await existing;
+      } else {
+        const promise = (async () => {
+          try {
+            return await browser.tabs.sendMessage<TranscriptResponse>(tab.id!, {
+              type: "FETCH_TRANSCRIPT",
+            });
+          } finally {
+            inFlightRequests.delete(videoId);
+          }
+        })();
+        inFlightRequests.set(videoId, promise);
+        response = await promise;
       }
+
+      if (!response?.available || !response.lines?.length) {
+        logger.warn("No transcript available in response for video {videoId}", { videoId });
+        throw new Error("No transcript available for this video. It may not have subtitles enabled.");
+      }
+      await setTranscriptCache(videoId, response.lines);
+      logger.debug("Cached transcript for video {videoId}, lines={count}", {
+        videoId,
+        count: response.lines.length,
+      });
+      return formatForPrompt(response.lines);
     },
 
   });
