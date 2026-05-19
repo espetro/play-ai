@@ -13,8 +13,8 @@
     "./core/adapters": "./src/core/adapters/index.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.0",
-    "@ai-sdk/openai": "3.0.0"
+    "@ai-sdk/anthropic": "3.0.78",
+    "@ai-sdk/openai": "3.0.64"
   },
   "devDependencies": {
     "@types/chrome": "0.1.42",

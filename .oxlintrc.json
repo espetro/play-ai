@@ -3,14 +3,16 @@
   "plugins": [
     "typescript",
     "unicorn",
-    "oxc"
+    "oxc",
+    "react"
   ],
   "categories": {
     "correctness": "error",
-    "perf": "warn"
+    "perf": "error"
   },
   "rules": {
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+    "typescript/no-explicit-any": "error"
   },
   "env": {
     "builtin": true

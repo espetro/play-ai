@@ -28,9 +28,15 @@ function isWatchPage(): boolean {
   return new URLSearchParams(window.location.search).has("v");
 }
 
+interface MountableUi {
+  mount: () => void;
+  remove: () => void;
+  _anchorObserver?: MutationObserver;
+}
+
 let mounted = false;
 
-function ensureMounted(ui: { mount: () => void; remove: () => void; _anchorObserver?: MutationObserver }, observer?: MutationObserver) {
+function ensureMounted(ui: MountableUi, observer?: MutationObserver) {
   if (mounted) return;
   try {
     ui.mount();
@@ -43,46 +49,42 @@ function ensureMounted(ui: { mount: () => void; remove: () => void; _anchorObser
   }
 }
 
-function watchForAnchor(ui: any) {
+function watchForAnchor(ui: MountableUi) {
   if (!isWatchPage()) {
     return;
   }
 
-  // Null guard: document.body may not exist yet in edge cases
-  if (!document.body) {
-    console.warn("[play-ai] document.body not available, skipping anchor observation");
-    return;
+  // Happy path: anchor already in DOM, mount immediately
+  if (findAnchor()) {
+    ensureMounted(ui);
+    if (mounted) return; // sync mount succeeded, no observer needed
   }
 
-  const anchor = findAnchor();
-  const observeTarget = anchor || document.body;
-
-  if (!observeTarget) return;
+  // Anchor not ready — observe document.body for mutations
+  if (!document.body || !document.body.isConnected) return;
 
   let rafId: number | null = null;
 
   const observer = new MutationObserver(() => {
     if (rafId !== null) return;
-    rafId = requestAnimationFrame(function run() {
+    rafId = requestAnimationFrame(() => {
       rafId = null;
-      const currentAnchor = findAnchor();
-      if (!currentAnchor && ui) {
-        mounted = false;
-        ui.remove();
-      } else if (currentAnchor && !document.querySelector("#play-ai-root")) {
+      if (!mounted && findAnchor()) {
         ensureMounted(ui, observer);
+        if (mounted) {
+          // Deferred mount succeeded; write videoId now so sidepanel can check transcript
+          updateVideoId().catch(console.error);
+        }
       }
     });
   });
 
-  observer.observe(observeTarget, {
-    childList: true,
-    subtree: true,
-  });
-
-  // Store disconnect on ui so we can clean up via ctx.onInvalidated
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (ui as any)._anchorObserver = observer;
+  try {
+    observer.observe(document.body, { childList: true, subtree: true });
+    ui._anchorObserver = observer;
+  } catch (e) {
+    console.warn("[play-ai] Failed to start anchor observer:", e);
+  }
 }
 
 async function renderApp(container: HTMLElement) {
@@ -107,7 +109,7 @@ export default defineContentScript({
   async main(ctx) {
     await configureLogger();
 
-    const ui = await createShadowRootUi(ctx, {
+    const uiBase = await createShadowRootUi(ctx, {
       name: "play-ai-overlay",
       position: "inline",
       anchor: findAnchor,
@@ -115,28 +117,40 @@ export default defineContentScript({
         renderApp(container);
       },
     });
+    const ui = uiBase as MountableUi;
 
     if (isWatchPage()) {
-      ensureMounted(ui);
-      await updateVideoId();
+      watchForAnchor(ui);
+      if (mounted) {
+        await updateVideoId();
+      }
     }
 
     const cleanup = onVideoChange(async () => {
       mounted = false;
+      // Disconnect stale anchor observer before teardown
+      const prevObserver = ui._anchorObserver;
+      if (prevObserver) {
+        prevObserver.disconnect();
+        ui._anchorObserver = undefined;
+      }
       ui.remove();
       if (isWatchPage()) {
-        ensureMounted(ui);
-        await updateVideoId();
+        watchForAnchor(ui); // re-arms observer; handles sync and deferred mount
+        if (mounted) {
+          await updateVideoId(); // sync mount path: write storage immediately
+        }
+        // deferred mount path: updateVideoId() called inside watchForAnchor after mount
       }
     });
 
     ctx.onInvalidated(() => {
       cleanup();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const observer = (ui as any)._anchorObserver;
+      const observer = ui._anchorObserver;
       if (observer) {
         observer.disconnect();
       }
+      mounted = false;
       ui.remove();
     });
 

@@ -1,0 +1,40 @@
+{
+  "name": "play-ai-extension-e2e",
+  "description": "Gauge-TS E2E tests for play-ai extension",
+  "version": "0.0.1",
+  "language": "typescript",
+  "projectType": "nodejs",
+
+  "gauge": {
+    "version": ">=1.5.0",
+    "plugins": [
+      {
+        "id": "ts",
+        "version": ">=0.0.1"
+      }
+    ]
+  },
+
+  "specs": {
+    "directories": [
+      "specs"
+    ],
+    "excludePatterns": [
+      "*.md"
+    ]
+  },
+
+  "steps": {
+    "directories": [
+      "step_implementations"
+    ]
+  },
+
+  "env": {
+    "default": "env/default"
+  },
+
+  "plugins": [
+    "ts"
+  ]
+}

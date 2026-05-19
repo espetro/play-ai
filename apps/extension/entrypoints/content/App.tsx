@@ -3,13 +3,10 @@ import { ChatShell, type Message } from "~/components/chat";
 import { extractVideoId } from "~/lib/youtube";
 import { fetchYouTubeTranscript, fetchCaptionTracksFromHtml, type CaptionTrack } from "~/lib/youtube-transcript";
 import { addAsyncMessageHandler, sendMessage } from "~/lib/messaging";
-import { $videoId } from "~/lib/storage";
 import type { ChatMessage } from "~/lib/storage";
-import type { Browser } from "wxt/browser";
 import type { TranscriptResponse } from "~/lib/messaging";
 import { getLogger } from "~/lib/logger";
 import { useBrowserMessageListener, useMountEffect } from "~/ui/hooks/useBrowserMessageListener";
-import { useYouTubeNavigation } from "~/ui/hooks/useYouTubeNavigation";
 
 const logger = getLogger(["content", "transcript"]);
 
@@ -55,12 +52,6 @@ export default function App() {
       });
     }
   });
-
-  useMountEffect(() => {
-    $videoId.setValue(extractVideoId());
-  });
-
-  useYouTubeNavigation((videoId) => $videoId.setValue(videoId));
 
   useMountEffect(() => {
     const getValidTracks = async (): Promise<CaptionTrack[] | null> => {
