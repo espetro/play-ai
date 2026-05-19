@@ -1,0 +1,17 @@
+{
+  "name": "@play-ai/observability",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "uv run phoenix serve"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@opentelemetry/sdk-trace-base": "2.7.1",
+    "@opentelemetry/exporter-trace-otlp-http": "0.218.0",
+    "@arizeai/openinference-vercel": "2.7.5"
+  }
+}
